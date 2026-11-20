@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Garnier Électricité — Électricien à Thouars (démo)</title>
+<meta name="description" content="Site de démonstration : électricien fictif à Thouars. Check-up interactif du tableau électrique, estimation en 30 secondes, suivi de chantier.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../_engine/engine.css">
+<style>
+:root{--ink:#0e110c;--slate:#181c15;--slate-2:#22271e;--acc:#c6f23a;--acc-d:#b0dc1f;--on-acc:#0f1306;--acc-txt:#5b7a00;--acc-soft:rgba(198,242,58,.12)}
+/* ===== Check-up du tableau ===== */
+.board{margin:18px;background:linear-gradient(#e9ebe6,#d5d8d1);border-radius:18px;padding:14px;box-shadow:inset 0 2px 0 #fff,0 18px 40px -16px rgba(0,0,0,.7);position:relative}
+.board::before{content:"TABLEAU ÉLECTRIQUE";display:block;font-size:10px;letter-spacing:.2em;color:#7a7f75;font-weight:700;margin-bottom:10px}
+.rail{display:flex;gap:4px;background:#bfc3ba;border-radius:8px;padding:8px 6px;margin-bottom:8px;overflow:hidden}
+.mod{position:relative;flex:1;min-width:0;background:#fbfbf8;border-radius:5px;padding:20px 2px 6px;text-align:center;font-size:9.5px;line-height:1.1;color:#555;box-shadow:inset 0 -2px 0 #dcdcd5;transition:box-shadow .3s,transform .3s,background .3s}
+.mod.w2{flex:2}
+.mod::before{content:"";position:absolute;left:50%;top:6px;width:12px;height:10px;margin-left:-6px;border-radius:2px;background:#2b2f28;box-shadow:inset 0 -4px 0 #6b7166}
+.mod.fuse::before{width:10px;height:12px;top:4px;margin-left:-5px;border-radius:50%;background:#e8e2d2;border:2px solid #b9ae8f;box-shadow:none}
+.mod.diff::before{background:#2b2f28}
+.mod.diff b{display:inline-block;margin-top:3px;background:#2f6bff;color:#fff;border-radius:3px;padding:0 3px;font-size:8.5px}
+.mod.focus{box-shadow:0 0 0 3px var(--acc),0 0 22px var(--acc);transform:translateY(-3px);z-index:2}
+.mod.ok{background:#e6f9ea}.mod.bad{background:#ffe4e1}.mod.mid{background:#fff3dc}
+.mod .st{position:absolute;right:2px;top:2px;font-size:10px}
+.legend{display:flex;justify-content:space-between;font-size:11px;color:#7a7f75;margin-top:4px}
+.chk{padding:6px 18px 18px}
+.chk .q{font-family:var(--display);font-size:22px;font-weight:700;line-height:1.15;margin:4px 0 8px}
+.chk .help{color:var(--muted-d);font-size:14px;margin-bottom:14px}
+.ans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ans button{background:var(--ink);border:1.5px solid var(--line);border-radius:14px;padding:13px 6px;font-weight:600;font-size:15px}
+.ans button:hover{border-color:var(--acc)}
+.qprog{display:flex;gap:5px;margin-bottom:10px}
+.qprog i{flex:1;height:5px;border-radius:9px;background:rgba(255,255,255,.12)}
+.qprog i.on{background:var(--acc)}
+.verdict{border-radius:18px;padding:16px;margin-bottom:12px}
+.verdict h4{font-size:24px}
+.verdict.g{background:rgba(47,191,113,.15);border:1px solid rgba(47,191,113,.45)}
+.verdict.o{background:rgba(255,138,61,.13);border:1px solid rgba(255,138,61,.45)}
+.verdict.r{background:rgba(255,77,77,.13);border:1px solid rgba(255,77,77,.5)}
+.points{display:grid;gap:8px;margin-bottom:14px}
+.points div{display:flex;gap:10px;background:var(--ink);border-radius:14px;padding:12px;font-size:14.5px;color:#d9ded5}
+.points div b{flex:none}
+.chk .fine{font-size:12px;color:var(--muted-d);margin-top:10px}
+.bulb{position:absolute;right:14px;top:10px;font-size:22px;filter:grayscale(1) brightness(.7);transition:filter .5s}
+.bulb.on{filter:none;text-shadow:0 0 18px #ffe066}
+</style>
+</head>
+<body>
+
+<div class="demo"><b>●</b> Site de démonstration — entreprise fictive. Conçu pour montrer ce que je peux faire pour votre entreprise.</div>
+<nav class="nav"><div class="wrap">
+  <a class="logo" href="#"><i>⚡</i>Garnier</a>
+  <div class="links"><a href="#checkup">Check-up tableau</a><a href="#estimer">Estimer</a><a href="#suivi">Suivi</a><a href="#chantiers">Chantiers</a><a href="#zone">Zone</a></div>
+  <a class="tel" href="#" data-tel>05 49 00 00 02</a>
+</div></nav>
+
+<header class="hero">
+  <img src="https://images.unsplash.com/photo-1576446470246-499c738d1c8e?w=2000&q=80&auto=format&fit=crop" alt="Rangée de disjoncteurs dans un tableau électrique">
+  <div class="wrap">
+    <div class="live"><b></b>Dépannage possible aujourd'hui</div>
+    <h1>Une installation <em>sûre</em>, du tableau à la prise.</h1>
+    <p class="sub">Électricien à Thouars depuis 2012. Vérifiez votre tableau en 1 minute, voyez le prix de vos travaux en 30 secondes.</p>
+    <div class="ctas">
+      <a class="btn btn-main" href="#checkup">🔍 Vérifier mon tableau <span class="arr">→</span></a>
+      <button class="btn btn-ghost" data-open>Estimer mes travaux</button>
+    </div>
+    <div class="proof">
+      <div><strong>4,9 ★</strong><span>74 avis Google</span></div>
+      <div><strong>Qualifelec</strong><span>RGE · décennale</span></div>
+      <div><strong>IRVE</strong><span>bornes de recharge</span></div>
+      <div><strong>48 h</strong><span>pour recevoir le devis</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ CHECK-UP TABLEAU ============ -->
+<section id="checkup"><div class="panel"><div class="wrap split2">
+  <div class="rev">
+    <div class="eyebrow">Nouveau · Check-up du tableau</div>
+    <div class="head" style="margin-bottom:26px"><h2>Votre tableau est-il sûr&nbsp;? Vérifiez en 1 minute.</h2>
+    <p>Ouvrez la porte de votre tableau électrique et répondez à 6 questions simples. Le tableau ci-contre s'allume au fur et à mesure et vous montre les points à surveiller.</p></div>
+    <div class="steps-mini">
+      <div><b>1</b>Regardez votre tableau, sans rien toucher à l'intérieur</div>
+      <div><b>2</b>Répondez par oui, non ou je ne sais pas</div>
+      <div><b>3</b>Recevez votre bilan et ce qu'il faut faire</div>
+    </div>
+  </div>
+  <div class="app rev" id="chkApp">
+    <div class="board" id="board">
+      <span class="bulb" id="bulb">💡</span>
+      <div class="rail">
+        <div class="mod w2" data-m="ag">Disjoncteur<br>général</div>
+        <div class="mod diff" data-m="diff">Différ.<br><b>30 mA</b></div>
+        <div class="mod" data-m="c1">Prises<br>salon</div>
+        <div class="mod" data-m="c2">Prises<br>cuisine</div>
+        <div class="mod" data-m="c3">Four</div>
+        <div class="mod" data-m="c4">Éclair.</div>
+      </div>
+      <div class="rail">
+        <div class="mod fuse" data-m="fuse">Vieux<br>fusibles</div>
+        <div class="mod diff" data-m="diff2">Différ.<br><b>30 mA</b></div>
+        <div class="mod" data-m="c5">Lave-<br>linge</div>
+        <div class="mod" data-m="c6">Chauffe-<br>eau</div>
+        <div class="mod" data-m="terre">Terre</div>
+        <div class="mod" data-m="c7">Volets</div>
+      </div>
+      <div class="legend"><span>Exemple de tableau</span><span id="legendTxt">Question 1 sur 6</span></div>
+    </div>
+    <div class="chk" id="chk"></div>
+  </div>
+</div></div></section>
+
+<section id="estimer" style="padding-top:0"><div class="wrap">
+  <div class="head rev"><div class="eyebrow">Estimation instantanée</div><h2>Quels travaux&nbsp;?</h2><p>Choisissez, répondez à 3 questions, voyez tout de suite une fourchette de prix détaillée. Votre numéro n'est demandé qu'après.</p></div>
+  <div class="est-grid" id="needGrid"></div>
+  <p class="note">⏱ 30 secondes · fourchette indicative, confirmée par un devis gratuit.</p>
+</div></section>
+
+<section id="suivi" style="padding-top:20px"><div class="wrap track">
+  <div class="rev">
+    <div class="eyebrow">Suivi de chantier</div>
+    <div class="head" style="margin-bottom:30px"><h2>Votre rénovation avance. <span class="hl">Vous le voyez.</span></h2><p>Une photo et un message chaque soir, même quand vous êtes au travail. Et le soir, le courant est toujours rétabli.</p></div>
+    <div class="steps-list">
+      <div class="sl"><span>1</span><div><b>Visite et devis sous 48 h</b><p>Julien contrôle votre installation et vous explique ce qui doit changer.</p></div></div>
+      <div class="sl"><span>2</span><div><b>Une date ferme, tenue</b><p>Début et fin connus avant de signer.</p></div></div>
+      <div class="sl"><span>3</span><div><b>Une photo chaque soir</b><p>Et le courant rétabli avant de partir, tous les jours.</p></div></div>
+      <div class="sl"><span>4</span><div><b>Schéma du tableau remis</b><p>Chaque disjoncteur étiqueté, garantie décennale.</p></div></div>
+    </div>
+  </div>
+  <div class="phone rev"><div class="screen">
+    <div class="top"><small>Votre chantier · Bressuire</small><b>Rénovation électrique</b><div class="bar"><i id="pbar"></i></div><small style="display:block;margin-top:8px">Jour 3 sur 5</small></div>
+    <div class="feed" id="feed">
+      <div class="msg"><div class="h"><b>Julien · Garnier</b><span>lun. 8:05</span></div><p>Ancien tableau déposé, alimentation provisoire en place pour le frigo 🧊</p></div>
+      <div class="msg"><div class="h"><b>Julien · Garnier</b><span>mar. 17:30</span></div><p>Nouveau tableau posé, chaque circuit sur son disjoncteur ✅</p><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Fuse%20box%20fixing%20is%20ready.JPG?width=640" alt="Coffret électrique neuf avec disjoncteurs"></div>
+      <div class="msg"><div class="h"><b>Julien · Garnier</b><span>mer. 18:10</span></div><p>Prises de la cuisine raccordées, courant rétabli partout 💡</p></div>
+    </div>
+  </div></div>
+</div></section>
+
+<section id="chantiers" style="padding-top:20px"><div class="wrap">
+  <div class="head rev"><div class="eyebrow">Avant · pendant · après</div><h2>Faites glisser le temps.</h2><p>De vraies photos de chantier, des vieux fils à un tableau propre et sûr.</p></div>
+  <div class="realnote">ⓘ Photos réelles d'un chantier, utilisées ici en exemple (crédits sous les photos).</div>
+  <div class="cases" id="cases"></div>
+  <div class="reel">
+    <div class="rev"><div class="stage" id="stage"><span class="badge" id="stBadge"></span><div class="cap" id="stCap"></div></div>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="200" value="0" aria-label="Avancement du chantier"><div class="ticks" id="ticks"></div></div></div>
+    <div class="reel-info rev"><h3 id="cTitle"></h3><p id="cText"></p><div class="facts" id="cFacts"></div><div class="credit" id="cCredit"></div></div>
+  </div>
+</div></section>
+
+<section class="reviews"><div class="wrap">
+  <div class="rv-top rev"><div class="big">4,9</div><div><div class="stars">★★★★★</div><div style="color:var(--muted);font-size:14px">74 avis sur Google</div></div></div>
+  <div class="rv-row">
+    <div class="rv"><div class="stars">★★★★★</div><p>« Le check-up du site m'a montré que mon différentiel ne coupait plus. Julien l'a changé le lendemain. »</p><div class="who"><i>MR</i><div>Marc R.<small>Tableau · Thouars</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Borne de recharge posée en une matinée, tout expliqué clairement. »</p><div class="who"><i>EP</i><div>Élodie P.<small>Borne · Loudun</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Rénovation complète de la maison, courant rétabli chaque soir comme promis. »</p><div class="who"><i>TD</i><div>Thierry D.<small>Rénovation · Bressuire</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★☆</div><p>« Dépannage rapide un samedi. Un peu d'attente, mais prévenus. »</p><div class="who"><i>SB</i><div>Sophie B.<small>Dépannage · Airvault</small></div></div></div>
+  </div>
+</div></section>
+
+<section id="zone"><div class="panel"><div class="wrap split2">
+  <div class="rev">
+    <div class="eyebrow">Zone d'intervention</div>
+    <div class="head" style="margin-bottom:22px"><h2>On vient chez vous&nbsp;?</h2><p>Basés à Thouars, on intervient à 35 km autour. Tapez votre commune : distance, temps de trajet et réponse immédiate.</p></div>
+    <div class="search"><input id="cityIn" placeholder="Votre commune, ex. Bressuire" autocomplete="off" aria-label="Votre commune"><div class="sugg" id="citySugg"></div></div>
+    <button class="geo-btn" id="geoBtn">📍 Utiliser ma position</button>
+  </div>
+  <div class="zone-app rev"><div id="zoneMap" aria-label="Carte de la zone d'intervention"></div><div class="zone-card" id="zoneCard"></div></div>
+</div></div></section>
+
+<section class="faq"><div class="wrap" style="max-width:860px">
+  <div class="head rev"><div class="eyebrow">Questions fréquentes</div><h2>Ce qu'on nous demande souvent.</h2></div>
+  <details><summary>Le check-up en ligne remplace-t-il un contrôle ?</summary><p>Non. Il repère les signes visibles qui méritent un contrôle. Seul un électricien sur place peut vérifier votre installation.</p></details>
+  <details><summary>Peut-on garder le courant pendant les travaux ?</summary><p>Oui : alimentation provisoire pour le frigo et le congélateur, et courant rétabli chaque soir.</p></details>
+  <details><summary>Installez-vous des bornes de recharge ?</summary><p>Oui, à domicile, avec la qualification IRVE.</p></details>
+  <details><summary>L'estimation en ligne est-elle fiable ?</summary><p>C'est une fourchette basée sur nos chantiers récents. Le prix définitif est fixé sur le devis et ne bouge plus ensuite.</p></details>
+</div></section>
+
+<section style="padding:0 0 12px"><div class="final"><div class="wrap">
+  <h2>Votre prix en 30 secondes.</h2><p>Sans engagement, et sans laisser votre numéro avant de l'avoir vu.</p>
+  <div class="ctas"><button class="btn btn-dark" data-open>Estimer mes travaux <span class="arr">→</span></button><a class="btn" href="#checkup" style="border:2px solid var(--ink)">🔍 Vérifier mon tableau</a></div>
+</div></div></section>
+
+<footer><div class="wrap"><span>Garnier Électricité · entreprise fictive · Thouars (79)</span><span>Démo · photos Unsplash & Wikimedia Commons · carte © IGN</span></div></footer>
+<div class="dock" id="dock"><a href="#" class="d-tel" data-tel>📞 Appeler</a><button class="d-main" data-open>Estimer mes travaux</button></div>
+
+<script>
+const FP=(f,w=1400)=>`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=${w}`;
+window.SITE={
+  company:'Garnier Électricité', short:'Garnier', artisan:'Julien', refPrefix:'GE',
+  base:{name:'Thouars',lat:46.9766,lon:-0.2153,radiusKm:35},
+  zoneOk:'Devis gratuit, déplacement offert.', urgency:'< 4 h',
+  doneSteps:['Appel de Julien pour caler le rendez-vous','Visite gratuite et contrôle de l\'installation','Devis détaillé par SMS sous 48 h','Lien de suivi : photo du chantier chaque soir'],
+  needs:[
+    {id:'tableau',e:'🔌',t:'Tableau électrique',s:'Remplacement, mise en sécurité',fixed:[900,2200],photoTitle:'Une photo du tableau ?',photoLead:'Porte ouverte, sans rien toucher : Julien voit tout de suite ce qu\'il faut prévoir.',split:[['Coffret & disjoncteurs',45],['Main-d\'œuvre',40],['Contrôle & étiquetage',15]]},
+    {id:'renovation',e:'🏠',t:'Rénovation électrique',s:'Toute la maison',unit:'m²',qtyTitle:'Surface de la maison',min:30,max:220,def:100,step:5,hint:'La surface habitable, comme sur votre taxe foncière ou votre bail.',price:{all:[90,150]},split:[['Tableau',15],['Câbles & gaines',25],['Prises & interrupteurs',20],['Main-d\'œuvre',40]]},
+    {id:'borne',e:'🚗',t:'Borne de recharge',s:'Voiture électrique',ask:{title:'Quelle installation ?',opts:[{id:'mono',e:'🔋',t:'7,4 kW',s:'Monophasé, le plus courant'},{id:'tri',e:'⚡',t:'11 kW',s:'Si vous avez le triphasé'},{id:'nsp',e:'❔',t:'Je ne sais pas',s:'Julien vous conseillera'}]},priceAsk:{mono:[1200,2000],tri:[1500,2500],nsp:[1200,2500]},photoTitle:'Une photo du garage ?',split:[['Borne',50],['Câblage & protection',25],['Main-d\'œuvre',25]]},
+    {id:'prises',e:'💡',t:'Prises & éclairage',s:'Ajouter, déplacer, changer',unit:'point',qtyTitle:'Combien de prises ou points lumineux',min:1,max:20,def:4,hint:'Une prise, un interrupteur ou un point lumineux = 1 point.',price:{all:[90,180]},split:[['Matériel',35],['Main-d\'œuvre',55],['Finitions',10]]},
+    {id:'panne',e:'⚡',t:'Dépannage',s:'Ça a sauté, plus de courant',fixed:[90,350],noUrgentFee:true,photoTitle:'Une photo du tableau ?',split:[['Recherche de panne',45],['Pièces',25],['Déplacement',30]]},
+    {id:'controle',e:'🔍',t:'Contrôle de l\'installation',s:'Pour être rassuré, avant travaux',fixed:[120,250],split:[['Contrôle sur place',70],['Rapport & conseils',30]]},
+  ],
+  cases:[{tab:'Tableau',title:'Vieille installation : un tableau neuf et sûr',
+    text:'Des fils dans tous les sens dans une vieille maison : un coffret modulaire neuf a été posé, avec un disjoncteur par circuit, adapté à ce qu\'il alimente.',
+    facts:[['3 étapes','photographiées'],['1 disjoncteur','par circuit'],['Coffret','modulaire neuf']],
+    stages:[{d:'Avant',l:'Installation d\'origine',c:'Vieille maison : câbles et protections à reprendre.',img:FP('Fuse boxes in old house.JPG')},
+            {d:'Pendant',l:'Coffret fixé',c:'Le nouveau coffret modulaire est en place.',img:FP('Fuse box fixing is ready.JPG')},
+            {d:'Après',l:'Tableau terminé',c:'Disjoncteurs posés, tout est vérifié.',img:FP('Fuse box after finishing.JPG')}],
+    credit:'Photos © <a href="https://commons.wikimedia.org/wiki/File:Fuse_box_after_finishing.JPG" target="_blank" rel="noopener">Dmitry G</a> — domaine public (avant, pendant) et <a href="https://creativecommons.org/licenses/by-sa/3.0/deed.fr" target="_blank" rel="noopener">CC BY-SA 3.0</a> (après), via Wikimedia Commons.'}],
+};
+</script>
+<script src="../_engine/engine.js"></script>
+<script>
+/* =================== CHECK-UP DU TABLEAU =================== */
+(function(){
+const E=Engine, $=s=>document.querySelector(s), chk=$('#chk');
+const Q=[
+  {m:['fuse'],q:'Voyez-vous des fusibles en porcelaine ou des « plombs » à cartouche ?',help:'Ce sont de petits cylindres blancs que l\'on dévisse, au lieu de disjoncteurs à manette.',bad:'yes',
+   r:{yes:['r','Fusibles anciens : votre installation date probablement de plusieurs décennies. À faire contrôler.'],nsp:['o','Prenez une photo de votre tableau : Julien vous dira tout de suite de quoi il s\'agit.']}},
+  {m:['diff','diff2'],q:'Y a-t-il au moins un interrupteur différentiel 30 mA ?',help:'Un module plus large, marqué « 30 mA », avec un petit bouton « T » ou « Test ».',bad:'no',
+   r:{no:['r','Pas de protection 30 mA : c\'est elle qui protège les personnes en cas de contact avec le courant. Point prioritaire.'],nsp:['o','Cherchez l\'inscription « 30 mA » sur les modules. En cas de doute, faites contrôler.']}},
+  {m:['diff','diff2'],q:'Quand on appuie sur le bouton « Test », le courant se coupe-t-il ?',help:'Le test coupe une partie de la maison pendant une seconde : c\'est normal, il suffit de remonter la manette.',bad:'no',
+   r:{no:['r','Le différentiel ne déclenche pas : il ne vous protège peut-être plus. À remplacer.'],nsp:['o','Pensez à le tester régulièrement : c\'est rapide et c\'est la meilleure façon de savoir s\'il fonctionne.']}},
+  {m:['terre','c1','c2'],q:'Vos prises ont-elles toutes une broche de terre ?',help:'La petite tige métallique qui dépasse au milieu de la prise.',bad:'no',
+   r:{no:['o','Des prises sans terre : les appareils à carcasse métallique ne sont pas protégés. À reprendre.'],nsp:['o','Vérifiez vos prises : sans broche de terre, les appareils à carcasse métallique ne sont pas protégés.']}},
+  {m:['c3','c6','ag'],q:'Odeur de brûlé, traces noires ou disjoncteur chaud au toucher ?',help:'Regardez sans toucher l\'intérieur du tableau.',bad:'yes',
+   r:{yes:['r','Signe d\'échauffement : coupez le circuit concerné et faites intervenir un électricien rapidement.'],nsp:['o','Au moindre doute d\'odeur ou de chaleur, coupez le disjoncteur général et appelez.']}},
+  {m:['c4','c5','c7'],q:'Est-ce que ça « saute » souvent ?',help:'Un disjoncteur ou le général qui coupe régulièrement, sans raison évidente.',bad:'yes',
+   r:{yes:['o','Coupures fréquentes : circuit surchargé ou défaut sur un appareil ou un câble. À diagnostiquer.'],nsp:['g','']}},
+];
+let i=0, res=[];
+function mods(list,cls){list.forEach(m=>{const el=document.querySelector(`[data-m="${m}"]`);if(!el)return;el.classList.remove('ok','mid','bad');if(cls)el.classList.add(cls)})}
+function focus(list){document.querySelectorAll('.mod').forEach(el=>el.classList.toggle('focus',list.includes(el.dataset.m)))}
+function render(){
+  if(i<Q.length){
+    const q=Q[i]; focus(q.m); $('#legendTxt').textContent=`Question ${i+1} sur ${Q.length}`;
+    chk.innerHTML=`<div class="qprog">${Q.map((_,j)=>`<i class="${j<=i?'on':''}"></i>`).join('')}</div><div class="q">${q.q}</div><div class="help">${q.help}</div>
+      <div class="ans"><button data-a="yes">Oui</button><button data-a="no">Non</button><button data-a="nsp">Je ne sais pas</button></div>`;
+    chk.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>answer(b.dataset.a));
+  } else verdict();
+}
+function answer(a){
+  const q=Q[i], r=q.r[a];
+  const lvl=r&&r[1]?(r[0]==='r'?2:1):0;
+  if(lvl) res.push({lvl:r[0],txt:r[1]});
+  q.m.forEach(m=>{const el=document.querySelector(`[data-m="${m}"]`);if(!el)return;
+    const w=Math.max(lvl,+(el.dataset.w||0)); el.dataset.w=w;
+    el.classList.remove('ok','mid','bad'); el.classList.add(['ok','mid','bad'][w]);
+    el.querySelector('.st')?.remove(); el.insertAdjacentHTML('beforeend',`<span class="st">${['✅','⚠️','⛔'][w]}</span>`)});
+  i++; render();
+}
+function verdict(){
+  focus([]); $('#legendTxt').textContent='Bilan';
+  const red=res.filter(x=>x.lvl==='r').length, orange=res.filter(x=>x.lvl==='o').length;
+  const v= red?['r','⛔ À faire contrôler rapidement',`${red} point${red>1?'s':''} important${red>1?'s':''} détecté${red>1?'s':''}.`]: orange?['o','⚠️ Quelques points à vérifier','Rien d\'alarmant, mais un contrôle vous rassurera.']:['g','✅ Votre tableau semble en bon état','Aucun signe visible de problème. Pensez à tester votre différentiel régulièrement.'];
+  if(!red&&!orange) $('#bulb').classList.add('on');
+  chk.innerHTML=`<div class="verdict ${v[0]}"><h4>${v[1]}</h4><p style="color:#d9ded5;font-size:14.5px;margin-top:4px">${v[2]}</p></div>
+    ${res.length?`<div class="points">${res.sort((a,b)=>a.lvl<b.lvl?1:-1).map(x=>`<div><b>${x.lvl==='r'?'⛔':'⚠️'}</b>${x.txt}</div>`).join('')}</div>`:''}
+    <div class="ctas"><button class="btn btn-main" id="chkGo">${red||orange?'Faire contrôler mon tableau →':'Un projet de travaux ? →'}</button><button class="btn" id="chkAgain" style="background:rgba(255,255,255,.08);color:#fff">Recommencer</button></div>
+    <p class="fine">Ce check-up repère des signes visibles. Il ne remplace pas un contrôle par un électricien sur place.</p>`;
+  $('#chkGo').onclick=()=>E.openSim(red?{need:'tableau'}:orange?{need:'controle'}:{});
+  $('#chkAgain').onclick=()=>{i=0;res=[];$('#bulb').classList.remove('on');document.querySelectorAll('.mod').forEach(el=>{el.classList.remove('ok','mid','bad');el.dataset.w=0;el.querySelector('.st')?.remove()});render()};
+}
+render();
+})();
+</script>
+</body>
+</html>

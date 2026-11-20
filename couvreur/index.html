@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gallien Couverture — Couvreur à Thouars (démo)</title>
+<meta name="description" content="Site de démonstration : couvreur fictif à Thouars. Mesure du toit sur vue satellite, estimation en 30 secondes, suivi de chantier en photos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --ink:#10161c; --slate:#1a232b; --slate-2:#24303a; --line:rgba(255,255,255,.12);
+  --chalk:#f1eee6; --paper:#faf8f3; --muted:#676d72; --muted-d:#a8b0b7;
+  --y:#ffc21a; --y-d:#f0b000; --on-y:#10161c; --ok:#2fbf71; --warn:#ff8a3d;
+  --display:'Bricolage Grotesque',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;line-height:1.5;overflow-x:hidden}
+img{display:block;max-width:100%}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+a{color:inherit}
+.wrap{width:100%;max-width:1180px;margin:0 auto;padding:0 20px}
+h1,h2,h3{font-family:var(--display);line-height:1.02;letter-spacing:-.02em}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#b88700}
+.dark .eyebrow,.est .eyebrow,.sim .eyebrow{color:var(--y)}
+.hl{background:linear-gradient(transparent 58%,var(--y) 58%,var(--y) 92%,transparent 92%);padding:0 .08em}
+
+.demo{background:var(--ink);color:#d7dbde;font-size:12.5px;text-align:center;padding:8px 14px}
+.demo b{color:var(--y)}
+
+.nav{position:absolute;left:0;right:0;z-index:5;color:#fff}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
+.logo{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:800;font-size:20px;text-decoration:none}
+.logo i{width:32px;height:32px;display:grid;place-items:center;background:var(--y);color:var(--on-y);border-radius:9px;font-style:normal;font-size:15px}
+.nav .links{display:none;gap:26px;font-size:14.5px;font-weight:500}
+.nav .links a{text-decoration:none;opacity:.85}
+.nav .tel{display:none;font-weight:600;font-size:14.5px;text-decoration:none;border:1px solid rgba(255,255,255,.35);padding:9px 16px;border-radius:99px}
+
+.hero{position:relative;min-height:100svh;color:#fff;display:flex;align-items:flex-end;overflow:hidden;background:var(--slate)}
+.hero>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.05);animation:drift 18s ease-out forwards}
+@keyframes drift{to{transform:scale(1)}}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,22,28,.6) 0%,rgba(16,22,28,.1) 30%,rgba(16,22,28,.78) 66%,rgba(16,22,28,.97) 100%)}
+.hero .wrap{position:relative;z-index:2;padding-bottom:110px;padding-top:120px}
+.live{display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.18);padding:8px 14px;border-radius:99px;font-size:13.5px;font-weight:500;margin-bottom:22px}
+.live b{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(47,191,113,.7)}70%{box-shadow:0 0 0 10px rgba(47,191,113,0)}100%{box-shadow:0 0 0 0 rgba(47,191,113,0)}}
+.hero h1{font-size:clamp(44px,11vw,112px);font-weight:800;max-width:11ch}
+.hero h1 em{font-style:normal;color:var(--y)}
+.hero p.sub{font-size:clamp(17px,2.2vw,21px);color:#d9dde0;max-width:36ch;margin:20px 0 30px}
+.ctas{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:16.5px;padding:17px 26px;border-radius:99px;text-decoration:none;transition:transform .15s,background .2s,box-shadow .2s}
+.btn:active{transform:scale(.97)}
+.btn-main{background:var(--y);color:var(--on-y);box-shadow:0 10px 30px -10px rgba(255,194,26,.8)}
+.btn-main:hover{background:var(--y-d)}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);backdrop-filter:blur(8px);font-weight:600}
+.btn-dark{background:var(--ink);color:#fff}
+.btn .arr{transition:transform .2s}.btn:hover .arr{transform:translateX(4px)}
+.proof{position:relative;z-index:2;margin-top:44px;display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:18px;overflow:hidden;max-width:760px}
+.proof div{background:rgba(16,22,28,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:16px 18px}
+.proof strong{display:block;font-family:var(--display);font-size:26px;font-weight:700}
+.proof span{font-size:13px;color:var(--muted-d)}
+
+.dock{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:900;display:flex;gap:8px;padding:8px;background:rgba(16,22,28,.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-radius:99px;box-shadow:0 16px 40px -10px rgba(0,0,0,.5);transform:translateY(150%);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.dock.show{transform:none}
+.dock a,.dock button{flex:1;padding:14px;border-radius:99px;font-weight:700;font-size:15px;text-align:center;text-decoration:none;color:#fff}
+.dock .d-main{background:var(--y);color:var(--on-y);flex:1.6}
+.dock .d-tel{background:rgba(255,255,255,.1);font-weight:600}
+
+section{padding:96px 0}
+.head{max-width:760px;margin-bottom:40px}
+.head h2{font-size:clamp(34px,6vw,64px);font-weight:800;margin-top:12px}
+.head p{font-size:18px;color:var(--muted);margin-top:16px;max-width:54ch}
+.panel{background:var(--ink);color:#fff;border-radius:32px;margin:0 12px;padding:72px 0;position:relative;overflow:hidden}
+.panel .head p{color:var(--muted-d)}
+.panel::before{content:"";position:absolute;width:560px;height:560px;right:-180px;top:-220px;background:radial-gradient(circle,rgba(255,194,26,.22),transparent 65%);pointer-events:none}
+
+/* besoins */
+.est-grid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr);position:relative}
+.need{background:var(--slate);border:1px solid var(--line);border-radius:20px;padding:20px;text-align:left;transition:border-color .2s,transform .2s,background .2s;min-height:150px;display:flex;flex-direction:column;justify-content:space-between}
+.need:hover{border-color:var(--y);transform:translateY(-3px);background:var(--slate-2)}
+.need .ic{font-size:30px}
+.need strong{font-family:var(--display);font-size:20px;font-weight:700;display:block;margin-top:14px}
+.need small{color:var(--muted-d);font-size:13.5px}
+.note{margin-top:22px;color:var(--muted-d);font-size:14px;position:relative}
+
+/* ===== Mesure satellite ===== */
+.sky{display:grid;gap:28px;position:relative}
+.sky-steps{display:flex;flex-direction:column;gap:14px;margin-top:6px}
+.sky-steps div{display:flex;gap:14px;align-items:flex-start;color:#dfe3e6;font-size:15.5px}
+.sky-steps b{flex:none;width:30px;height:30px;border-radius:9px;background:var(--y);color:var(--on-y);display:grid;place-items:center;font-family:var(--display)}
+.sky-app{background:var(--slate);border:1px solid var(--line);border-radius:26px;overflow:hidden;position:relative}
+.sky-search{position:relative;z-index:1100;padding:12px;border-bottom:1px solid var(--line)}
+.sky-search input{width:100%;background:var(--ink);border:1.5px solid var(--line);border-radius:14px;padding:14px 14px 14px 42px;color:#fff;font:inherit;font-size:16px;outline:0}
+.sky-search input:focus{border-color:var(--y)}
+.sky-search::before{content:"⌕";position:absolute;left:28px;top:50%;transform:translateY(-52%);font-size:20px;color:var(--muted-d)}
+.sugg{position:absolute;left:12px;right:12px;top:calc(100% - 6px);background:#fff;color:var(--ink);border-radius:14px;box-shadow:0 20px 40px -10px rgba(0,0,0,.5);z-index:1000;overflow:hidden;display:none}
+.sugg.on{display:block}
+.sugg button{display:block;width:100%;text-align:left;padding:12px 14px;font-size:14.5px;border-bottom:1px solid #eee}
+.sugg button:hover,.sugg button:focus{background:#fff6d6;outline:0}
+.sugg button small{color:var(--muted);display:block;font-size:12.5px}
+#skyMap{height:min(62vh,460px);background:#222}
+.sky-hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:500;background:rgba(16,22,28,.88);color:#fff;font-size:13.5px;font-weight:500;padding:9px 14px;border-radius:99px;white-space:nowrap;pointer-events:none;backdrop-filter:blur(6px);transition:opacity .3s;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+.sky-tools{position:absolute;right:10px;top:84px;z-index:500;display:flex;flex-direction:column;gap:6px}
+.sky-tools button{width:42px;height:42px;border-radius:12px;background:rgba(16,22,28,.88);color:#fff;font-size:17px;backdrop-filter:blur(6px)}
+.sky-tools button:disabled{opacity:.35}
+.sky-out{padding:16px;display:grid;gap:14px}
+.pitch{display:flex;gap:6px;flex-wrap:wrap}
+.pitch button{flex:1;min-width:90px;background:var(--ink);border:1.5px solid var(--line);border-radius:12px;padding:10px 8px;font-size:13.5px;color:#dfe3e6;line-height:1.25}
+.pitch button small{display:block;color:var(--muted-d);font-size:11.5px}
+.pitch button.sel{border-color:var(--y);color:#fff;background:rgba(255,194,26,.1)}
+.sky-res{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sky-res .big{font-family:var(--display);font-size:46px;font-weight:800;line-height:1}
+.sky-res .big small{font-size:18px;color:var(--muted-d);font-weight:500}
+.sky-res .sub{font-size:13px;color:var(--muted-d)}
+.vtx{width:18px!important;height:18px!important;margin:-9px 0 0 -9px!important;border-radius:50%;background:var(--y);border:3px solid #10161c;box-shadow:0 0 0 2px var(--y)}
+.vtx.first{background:#fff}
+.sky-credit{font-size:11.5px;color:var(--muted-d);padding:0 16px 14px}
+
+/* suivi */
+.track{display:grid;gap:48px;align-items:center}
+.phone{width:min(330px,100%);margin:0 auto;background:#0b0e11;border-radius:46px;padding:12px;box-shadow:0 40px 80px -30px rgba(16,22,28,.55),inset 0 0 0 2px #2a333b}
+.screen{background:#f2efe9;border-radius:36px;overflow:hidden;height:600px;position:relative}
+.screen .top{background:var(--slate);color:#fff;padding:44px 20px 18px}
+.screen .top small{color:var(--muted-d);font-size:12px}
+.screen .top b{display:block;font-family:var(--display);font-size:22px;margin-top:2px}
+.bar{height:8px;background:rgba(255,255,255,.15);border-radius:9px;margin-top:14px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--y);border-radius:9px;transition:width 1.6s cubic-bezier(.2,.8,.2,1)}
+.feed{padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{background:#fff;border-radius:16px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);opacity:0;transform:translateY(14px);transition:all .5s}
+.msg.in{opacity:1;transform:none}
+.msg .h{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:5px}
+.msg .h b{color:var(--ink)}
+.msg p{font-size:13.5px}
+.msg img{border-radius:10px;margin-top:8px;height:110px;width:100%;object-fit:cover}
+.steps-list{display:flex;flex-direction:column;gap:20px}
+.sl{display:flex;gap:16px}
+.sl span{flex:none;width:40px;height:40px;border-radius:12px;background:var(--y);display:grid;place-items:center;font-family:var(--display);font-weight:700}
+.sl b{font-family:var(--display);font-size:20px;display:block}
+.sl p{color:var(--muted);font-size:15.5px}
+
+/* chantier réel */
+.cases{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.cases button{padding:10px 16px;border-radius:99px;background:var(--chalk);font-weight:600;font-size:14.5px}
+.cases button.on{background:var(--ink);color:#fff}
+.reel{display:grid;gap:26px}
+.stage{position:relative;border-radius:28px;overflow:hidden;aspect-ratio:4/3;background:#222}
+.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .25s}
+.stage .badge{position:absolute;left:14px;top:14px;background:var(--y);color:var(--on-y);font-weight:700;font-size:13px;padding:7px 12px;border-radius:99px;z-index:2}
+.stage .cap{position:absolute;left:0;right:0;bottom:0;padding:40px 18px 16px;background:linear-gradient(transparent,rgba(0,0,0,.75));color:#fff;font-size:15px;font-weight:500;z-index:2}
+.scrub{margin-top:16px}
+.scrub input{width:100%;accent-color:var(--ink);height:28px}
+.ticks{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+.ticks button{flex:1;text-align:left;font-size:12.5px;color:var(--muted);padding:6px 0;border-top:3px solid #ddd8cc;transition:all .2s}
+.ticks button:last-child{text-align:right}
+.ticks button.on{color:var(--ink);font-weight:700;border-color:var(--y)}
+.reel-info h3{font-size:32px;margin:6px 0 12px}
+.reel-info p{color:var(--muted);font-size:16.5px}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:22px 0}
+.facts div{background:var(--chalk);border-radius:16px;padding:12px}
+.facts b{display:block;font-family:var(--display);font-size:20px}
+.facts span{font-size:12.5px;color:var(--muted)}
+.credit{font-size:12px;color:var(--muted);margin-top:14px}
+.credit a{color:var(--muted)}
+.realnote{display:inline-flex;gap:8px;align-items:center;background:#fff6d6;border:1px solid #f3dd8f;color:#6b5200;font-size:13px;padding:7px 12px;border-radius:10px;margin-bottom:16px}
+
+/* avis */
+.reviews{background:var(--chalk)}
+.rv-top{display:flex;align-items:center;gap:16px;margin-bottom:30px}
+.rv-top .big{font-family:var(--display);font-size:64px;font-weight:800;line-height:1}
+.stars{color:#f5a524;letter-spacing:2px}
+.rv-row{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px;margin:0 -20px;padding-left:20px;padding-right:20px;scrollbar-width:none}
+.rv-row::-webkit-scrollbar{display:none}
+.rv{flex:none;width:min(330px,82vw);scroll-snap-align:start;background:#fff;border-radius:22px;padding:22px}
+.rv p{margin:10px 0 16px;font-size:15.5px}
+.rv .who{display:flex;align-items:center;gap:10px;font-size:14px}
+.rv .who i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--slate);color:#fff;font-style:normal;font-weight:600}
+.rv .who small{display:block;color:var(--muted);font-size:12.5px}
+
+/* zone */
+.zone{display:grid;gap:22px;position:relative}
+.zone-app{background:var(--slate);border:1px solid var(--line);border-radius:26px;overflow:hidden;position:relative}
+#zoneMap{height:min(60vh,440px);background:#1a1f24}
+.zone-card{position:absolute;left:12px;right:12px;bottom:12px;z-index:500;background:rgba(16,22,28,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:18px;padding:16px;color:#fff;display:none}
+.zone-card.on{display:block;animation:up .35s}
+.zone-card .row{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.zone-card h4{font-family:var(--display);font-size:22px}
+.zone-card p{color:var(--muted-d);font-size:14px;margin-top:2px}
+.zone-card .kpis{display:flex;gap:18px;margin:12px 0}
+.zone-card .kpis b{display:block;font-family:var(--display);font-size:24px}
+.zone-card .kpis span{font-size:12px;color:var(--muted-d)}
+.zone-card .btn{padding:13px 20px;font-size:15px}
+.geo-btn{display:inline-flex;align-items:center;gap:8px;margin-top:12px;color:#dfe3e6;font-size:14.5px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.pin{width:22px!important;height:22px!important;margin:-11px 0 0 -11px!important;border-radius:50%;background:var(--y);border:4px solid #10161c;box-shadow:0 0 0 0 rgba(255,194,26,.6);animation:pin 2s infinite}
+@keyframes pin{70%{box-shadow:0 0 0 18px rgba(255,194,26,0)}100%{box-shadow:0 0 0 0 rgba(255,194,26,0)}}
+.dest{width:20px!important;height:20px!important;margin:-10px 0 0 -10px!important;border-radius:50%;background:#fff;border:4px solid var(--ok)}
+.dest.out{border-color:var(--warn)}
+.leaflet-container{font-family:var(--body)}
+.night{filter:invert(1) hue-rotate(185deg) brightness(.85) contrast(.9) saturate(.5)}
+@media(max-width:759px){.zone-card{position:static;border-radius:0;border:0;border-top:1px solid var(--line)}}
+.leaflet-control-attribution{font-size:10px!important}
+.lbl{background:transparent;border:0;box-shadow:none;color:#fff;font-weight:700;font-size:12px;text-shadow:0 1px 3px #000}
+.lbl::before{display:none}
+
+/* faq */
+.faq details{border-bottom:1px solid #e3ded4;padding:20px 0}
+.faq summary{font-family:var(--display);font-size:21px;font-weight:700;cursor:pointer;list-style:none;display:flex;justify-content:space-between;gap:20px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:#b88700;font-size:28px;line-height:.8;transition:transform .2s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{color:var(--muted);margin-top:10px;max-width:62ch}
+
+.final{background:var(--y);color:var(--on-y);border-radius:32px;margin:0 12px 12px;text-align:center;padding:80px 0}
+.final h2{font-size:clamp(38px,7vw,76px);font-weight:800;max-width:14ch;margin:0 auto}
+.final p{margin:18px auto 30px;max-width:40ch;font-size:18px}
+.final .ctas{justify-content:center}
+footer{padding:40px 0 120px;font-size:13px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:10px 28px;justify-content:space-between}
+
+/* ===== Simulateur ===== */
+.sim{position:fixed;inset:0;z-index:2000;background:var(--ink);color:#fff;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s}
+.sim.open{opacity:1;pointer-events:auto}
+.sim-top{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;gap:16px;max-width:700px;width:100%;margin:0 auto}
+.sim-top .prog{flex:1;height:6px;background:rgba(255,255,255,.12);border-radius:9px;overflow:hidden}
+.sim-top .prog i{display:block;height:100%;background:var(--y);width:0;transition:width .4s}
+.sim-top button{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.1);font-size:18px;flex:none}
+.sim-body{flex:1;overflow-y:auto;padding:10px 20px 30px}
+.sim-in{max-width:620px;margin:0 auto}
+.step{animation:up .4s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{opacity:0;transform:translateY(18px)}}
+.step h3{font-size:clamp(30px,6vw,46px);font-weight:800;margin:14px 0 24px}
+.step .lead{color:var(--muted-d);margin:-12px 0 22px;font-size:16px}
+.opts{display:grid;gap:10px}
+.opt{display:flex;align-items:center;gap:16px;text-align:left;background:var(--slate);border:1.5px solid var(--line);border-radius:18px;padding:18px;transition:all .15s}
+.opt:hover{border-color:rgba(255,255,255,.35)}
+.opt.sel{border-color:var(--y);background:rgba(255,194,26,.1)}
+.opt .e{font-size:26px;width:36px;text-align:center}
+.opt b{display:block;font-weight:600;font-size:16.5px}
+.opt small{color:var(--muted-d);font-size:13.5px}
+.range-box{background:var(--slate);border-radius:22px;padding:28px 22px}
+.range-val{font-family:var(--display);font-size:64px;font-weight:800;line-height:1}
+.range-val small{font-size:22px;color:var(--muted-d);font-weight:500}
+input[type=range]{width:100%;margin:22px 0 8px;accent-color:var(--y);height:28px}
+.range-hint{color:var(--muted-d);font-size:14px}
+.measured{display:block;background:rgba(47,191,113,.12);border:1px solid rgba(47,191,113,.4);color:#c9f2da;border-radius:14px;padding:12px 14px;font-size:14.5px;margin-bottom:12px}
+.sat-link{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;background:rgba(255,194,26,.08);border:1.5px dashed rgba(255,194,26,.5);border-radius:18px;padding:16px;text-align:left}
+.sat-link b{display:block;color:var(--y)}
+.sat-link small{color:var(--muted-d);font-size:13.5px}
+.drop{display:grid;place-items:center;text-align:center;border:1.5px dashed rgba(255,255,255,.3);border-radius:20px;padding:30px 20px;background:var(--slate);cursor:pointer}
+.drop b{display:block;font-size:17px;margin-top:8px}
+.drop small{color:var(--muted-d)}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.thumbs img{aspect-ratio:1;object-fit:cover;border-radius:12px;width:100%}
+.result{background:linear-gradient(160deg,var(--slate-2),var(--slate));border:1px solid var(--line);border-radius:24px;padding:24px 22px;margin-bottom:18px}
+.result .lbl{font-size:13px;color:var(--muted-d)}
+.result .price{font-family:var(--display);font-size:clamp(40px,10vw,58px);font-weight:800;line-height:1.05;margin:6px 0 4px;color:var(--y)}
+.result .recap{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.result .recap span{background:rgba(255,255,255,.08);border-radius:99px;padding:5px 11px;font-size:12.5px}
+.split{margin-top:18px;display:grid;gap:9px}
+.split .r{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px}
+.split .r i{grid-column:1/-1;height:6px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}
+.split .r i::after{content:"";display:block;height:100%;width:var(--w);background:var(--y);border-radius:9px}
+.result .disc{color:var(--muted-d);font-size:12.5px;margin-top:14px}
+.subh{font-family:var(--display);font-size:24px;font-weight:700;margin:24px 0 12px}
+.slots{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.slot{background:var(--slate);border:1.5px solid var(--line);border-radius:14px;padding:12px;text-align:left;font-size:14px}
+.slot b{display:block;font-size:15px}
+.slot small{color:var(--muted-d)}
+.slot.sel{border-color:var(--y);background:rgba(255,194,26,.1)}
+.fields{display:grid;gap:10px}
+.fields input{width:100%;background:var(--slate);border:1.5px solid var(--line);border-radius:16px;padding:17px 16px;color:#fff;font:inherit;font-size:16px;outline:0}
+.fields input:focus{border-color:var(--y)}
+.fields label{font-size:13px;color:var(--muted-d);margin-bottom:-4px}
+.sim-foot{padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px;justify-content:center}
+.sim-foot .btn{flex:1;max-width:320px}
+.sim-foot .back{background:rgba(255,255,255,.08);color:#fff;flex:0 0 auto;padding:17px 22px}
+.btn[disabled]{opacity:.35;pointer-events:none}
+.done{text-align:center;padding-top:24px}
+.done .ok{width:84px;height:84px;border-radius:50%;background:var(--ok);display:grid;place-items:center;margin:0 auto 22px;font-size:40px;animation:pop .5s cubic-bezier(.3,1.6,.5,1)}
+@keyframes pop{from{transform:scale(0)}}
+.done h3{margin:0 0 12px}
+.done p{color:var(--muted-d);font-size:17px;max-width:40ch;margin:0 auto}
+.ticket{margin:26px auto 0;max-width:440px;text-align:left;background:var(--slate);border-radius:20px;overflow:hidden}
+.ticket .tt{display:flex;justify-content:space-between;padding:14px 16px;background:var(--y);color:var(--on-y);font-weight:700;font-size:14px}
+.ticket .tl{padding:6px 16px 14px}
+.ticket .tl div{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.ticket .tl div:last-child{border:0}
+.ticket .tl b{color:var(--y);font-family:var(--display);width:18px}
+
+.toast{position:fixed;left:50%;top:20px;transform:translate(-50%,-160%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:99px;font-size:14px;z-index:3000;transition:transform .3s;max-width:90vw;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.on{transform:translate(-50%,0)}
+.rev{opacity:0;transform:translateY(24px);transition:opacity .7s,transform .7s cubic-bezier(.2,.8,.2,1)}
+.rev.in{opacity:1;transform:none}
+
+@media(min-width:760px){
+  .nav .links{display:flex}.nav .tel{display:inline-block}
+  .proof{grid-template-columns:repeat(4,1fr)}
+  .est-grid{grid-template-columns:repeat(3,1fr)}
+  .track{grid-template-columns:1fr 1fr}
+  .reel{grid-template-columns:1.15fr 1fr;align-items:center;gap:56px}
+  .sky{grid-template-columns:.8fr 1.2fr;align-items:center;gap:48px}
+  .zone{grid-template-columns:.8fr 1.2fr;align-items:center;gap:48px}
+  .panel,.final{margin:0 24px}
+  .opts.two{grid-template-columns:1fr 1fr}
+  .slots{grid-template-columns:repeat(4,1fr)}
+}
+@media(min-width:1000px){.dock{left:auto;right:24px;width:420px}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="demo"><b>●</b> Site de démonstration — entreprise fictive. Conçu pour montrer ce que je peux faire pour votre entreprise.</div>
+
+<nav class="nav"><div class="wrap">
+  <a class="logo" href="#"><i>▲</i>Gallien</a>
+  <div class="links"><a href="#ciel">Mesurer mon toit</a><a href="#estimer">Estimer</a><a href="#suivi">Suivi</a><a href="#chantiers">Chantiers</a><a href="#zone">Zone</a></div>
+  <a class="tel" href="#" data-tel>05 49 00 00 00</a>
+</div></nav>
+
+<header class="hero">
+  <img src="https://images.unsplash.com/photo-1789265176945-f8eda3e598a6?w=2000&q=80&auto=format&fit=crop" alt="Toiture en ardoise avec lucarnes">
+  <div class="wrap">
+    <div class="live"><b></b>2 créneaux libres en décembre</div>
+    <h1>Votre toit, <em>refait</em> sans mauvaise surprise.</h1>
+    <p class="sub">Couvreur-zingueur à Thouars depuis 2003. Mesurez votre toit depuis le ciel, voyez votre prix en 30 secondes, recevez le devis sous 48 h.</p>
+    <div class="ctas">
+      <a class="btn btn-main" href="#ciel">📡 Mesurer mon toit <span class="arr">→</span></a>
+      <button class="btn btn-ghost" data-open>Estimer mon chantier</button>
+    </div>
+    <div class="proof">
+      <div><strong>4,9 ★</strong><span>87 avis Google</span></div>
+      <div><strong>640+</strong><span>toitures réalisées</span></div>
+      <div><strong>RGE</strong><span>Qualibat · décennale</span></div>
+      <div><strong>48 h</strong><span>pour recevoir le devis</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MESURE SATELLITE ============ -->
+<section id="ciel"><div class="panel"><div class="wrap sky">
+  <div class="rev">
+    <div class="eyebrow">Nouveau · Mesure satellite</div>
+    <div class="head" style="margin-bottom:26px"><h2>Mesurez votre toit depuis le ciel.</h2>
+    <p>Plus besoin de monter sur le toit ni de chercher un mètre. Trouvez votre maison sur la vue satellite, touchez les coins du toit : la surface se calcule toute seule.</p></div>
+    <div class="sky-steps">
+      <div><b>1</b>Tapez votre adresse</div>
+      <div><b>2</b>Touchez chaque coin de votre toit</div>
+      <div><b>3</b>Choisissez la pente : on calcule la vraie surface de toiture</div>
+    </div>
+  </div>
+  <div class="sky-app rev">
+    <div class="sky-search">
+      <input id="addrIn" placeholder="Votre adresse, ex. 12 rue de la Gare, Thouars" autocomplete="off" aria-label="Votre adresse">
+      <div class="sugg" id="addrSugg"></div>
+    </div>
+    <div style="position:relative">
+      <div id="skyMap" aria-label="Vue satellite pour mesurer le toit"></div>
+      <div class="sky-hint" id="skyHint">Touchez les coins de votre toit</div>
+      <div class="sky-tools"><button id="skyUndo" title="Annuler le dernier point" disabled>↶</button><button id="skyClear" title="Tout effacer" disabled>✕</button></div>
+    </div>
+    <div class="sky-out">
+      <div class="pitch" id="pitch">
+        <button data-p="15">Faible<small>≈ 15° · plat, annexe</small></button>
+        <button data-p="35" class="sel">Moyenne<small>≈ 35° · le plus courant</small></button>
+        <button data-p="45">Forte<small>≈ 45° · ardoise, combles</small></button>
+      </div>
+      <div class="sky-res">
+        <div><div class="sub">Surface de toiture estimée</div><div class="big"><span id="roofArea">—</span> <small>m²</small></div><div class="sub" id="groundArea">Surface au sol : —</div></div>
+        <button class="btn btn-main" id="skyGo" disabled>Estimer avec cette surface →</button>
+      </div>
+    </div>
+    <div class="sky-credit">Vue aérienne © IGN — Géoplateforme · adresses : Base Adresse Nationale</div>
+  </div>
+</div></div></section>
+
+<!-- ============ BESOINS ============ -->
+<section id="estimer" style="padding-top:0"><div class="wrap">
+  <div class="head rev">
+    <div class="eyebrow">Estimation instantanée</div>
+    <h2>De quoi votre toit a-t-il besoin&nbsp;?</h2>
+    <p>Choisissez, répondez à 3 questions, voyez tout de suite une fourchette de prix détaillée. Votre numéro n'est demandé qu'après.</p>
+  </div>
+  <div class="est-grid" id="needGrid" style="--dummy:0"></div>
+  <p class="note" style="color:var(--muted)">⏱ 30 secondes · fourchette indicative, confirmée par un devis gratuit sur place.</p>
+</div></section>
+
+<!-- ============ SUIVI ============ -->
+<section id="suivi" style="padding-top:20px"><div class="wrap track">
+  <div class="rev">
+    <div class="eyebrow">Suivi de chantier</div>
+    <div class="head" style="margin-bottom:30px"><h2>Vous savez où en est votre toit. <span class="hl">Chaque soir.</span></h2>
+    <p>Pendant les travaux, vous recevez des photos et un message à chaque étape. Même si vous êtes au travail.</p></div>
+    <div class="steps-list">
+      <div class="sl"><span>1</span><div><b>Visite et devis sous 48 h</b><p>Thomas monte sur le toit, prend les mesures et vous montre les photos.</p></div></div>
+      <div class="sl"><span>2</span><div><b>Une date ferme, tenue</b><p>Vous connaissez le jour de début et de fin avant de signer.</p></div></div>
+      <div class="sl"><span>3</span><div><b>Des photos chaque soir</b><p>Vous voyez l'avancement comme si vous étiez sur l'échafaudage.</p></div></div>
+      <div class="sl"><span>4</span><div><b>Chantier propre, garanti 10 ans</b><p>Gouttières nettoyées, jardin rangé, garantie décennale remise.</p></div></div>
+    </div>
+  </div>
+  <div class="phone rev"><div class="screen">
+    <div class="top"><small>Votre chantier · Mauzé-Thouarsais</small><b>Réfection de toiture</b><div class="bar"><i id="pbar"></i></div><small style="display:block;margin-top:8px">Jour 3 sur 8</small></div>
+    <div class="feed" id="feed">
+      <div class="msg"><div class="h"><b>Thomas · Gallien</b><span>lun. 8:02</span></div><p>Échafaudage monté, bâche posée. On attaque la dépose demain matin 👷</p></div>
+      <div class="msg"><div class="h"><b>Thomas · Gallien</b><span>mar. 17:40</span></div><p>Dépose terminée. Charpente saine, on pose l'écran de sous-toiture ✅</p><img src="https://commons.wikimedia.org/wiki/Special:FilePath/Villa_Majorelle_Toiture_en_cours.jpg?width=640" alt="Charpente isolée avec écran de sous-toiture"></div>
+      <div class="msg"><div class="h"><b>Thomas · Gallien</b><span>mer. 17:55</span></div><p>Pan nord couvert à 60 %. Météo OK pour demain ☀️</p></div>
+    </div>
+  </div></div>
+</div></section>
+
+<!-- ============ CHANTIERS RÉELS ============ -->
+<section id="chantiers" style="padding-top:20px"><div class="wrap">
+  <div class="head rev"><div class="eyebrow">Avant · pendant · après</div><h2>Faites glisser le temps.</h2><p>De vraies photos de chantier, de la toiture usée jusqu'à la dernière ardoise posée.</p></div>
+  <div class="realnote">ⓘ Photos réelles de chantiers publics, utilisées ici en exemple (crédits sous les photos).</div>
+  <div class="cases" id="cases"></div>
+  <div class="reel">
+    <div class="rev">
+      <div class="stage" id="stage"><span class="badge" id="stBadge"></span><div class="cap" id="stCap"></div></div>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="200" value="0" aria-label="Avancement du chantier"><div class="ticks" id="ticks"></div></div>
+    </div>
+    <div class="reel-info rev">
+      <h3 id="cTitle"></h3>
+      <p id="cText"></p>
+      <div class="facts" id="cFacts"></div>
+      <div class="credit" id="cCredit"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ============ AVIS ============ -->
+<section class="reviews"><div class="wrap">
+  <div class="rv-top rev"><div class="big">4,9</div><div><div class="stars">★★★★★</div><div style="color:var(--muted);font-size:14px">87 avis sur Google</div></div></div>
+  <div class="rv-row">
+    <div class="rv"><div class="stars">★★★★★</div><p>« J'ai mesuré mon toit sur le site en 2 minutes, le devis final était à 3 m² près. Bluffant. »</p><div class="who"><i>JM</i><div>Jean-Marc R.<small>Réfection ardoise · Thouars</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Les photos tous les soirs, c'est génial. J'étais à Nantes pendant le chantier et je n'ai jamais été inquiet. »</p><div class="who"><i>SL</i><div>Sandrine L.<small>Réfection tuile · Saint-Varent</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Fuite réparée le lendemain de mon appel, un samedi. Prix annoncé = prix payé. »</p><div class="who"><i>PD</i><div>Pascal D.<small>Réparation fuite · Loudun</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★☆</div><p>« Très bon travail sur nos fenêtres de toit. Un jour de retard à cause de la pluie, mais prévenus la veille. »</p><div class="who"><i>AC</i><div>Amélie C.<small>Fenêtres de toit · Airvault</small></div></div></div>
+  </div>
+</div></section>
+
+<!-- ============ ZONE ============ -->
+<section id="zone"><div class="panel"><div class="wrap zone">
+  <div class="rev">
+    <div class="eyebrow">Zone d'intervention</div>
+    <div class="head" style="margin-bottom:22px"><h2>On vient chez vous&nbsp;?</h2><p>Basés à Thouars, on intervient à 35 km autour. Tapez votre commune : distance, temps de trajet et réponse immédiate.</p></div>
+    <div class="sky-search" style="padding:0;border:0">
+      <input id="cityIn" placeholder="Votre commune, ex. Bressuire" autocomplete="off" aria-label="Votre commune">
+      <div class="sugg" id="citySugg" style="left:0;right:0"></div>
+    </div>
+    <button class="geo-btn" id="geoBtn">📍 Utiliser ma position</button>
+  </div>
+  <div class="zone-app rev">
+    <div id="zoneMap" aria-label="Carte de la zone d'intervention"></div>
+    <div class="zone-card" id="zoneCard"></div>
+  </div>
+</div></div></section>
+
+<section class="faq"><div class="wrap" style="max-width:860px">
+  <div class="head rev"><div class="eyebrow">Questions fréquentes</div><h2>Ce qu'on nous demande souvent.</h2></div>
+  <details><summary>La mesure satellite est-elle précise ?</summary><p>Elle donne une très bonne base (souvent à quelques m² près). Thomas vérifie toujours les mesures sur place avant le devis définitif.</p></details>
+  <details><summary>L'estimation en ligne est-elle fiable ?</summary><p>C'est une fourchette basée sur nos chantiers récents. Le prix définitif est fixé sur le devis, après la visite gratuite, et ne bouge plus ensuite.</p></details>
+  <details><summary>Intervenez-vous en urgence ?</summary><p>Oui, pour les fuites : bâchage sous 24 h dans notre zone, y compris le samedi.</p></details>
+  <details><summary>Êtes-vous assurés ?</summary><p>Oui, assurance décennale et responsabilité civile. L'attestation est jointe à chaque devis.</p></details>
+</div></section>
+
+<section style="padding:0 0 12px"><div class="final"><div class="wrap">
+  <h2>Votre prix en 30 secondes.</h2>
+  <p>Sans engagement, et sans laisser votre numéro avant de l'avoir vu.</p>
+  <div class="ctas"><button class="btn btn-dark" data-open>Estimer mon chantier <span class="arr">→</span></button><a class="btn" href="#ciel" style="border:2px solid var(--ink)">📡 Mesurer mon toit</a></div>
+</div></div></section>
+
+<footer><div class="wrap">
+  <span>Gallien Couverture · entreprise fictive · Thouars (79)</span>
+  <span>Démo · photos Unsplash & Wikimedia Commons · vue aérienne IGN · fond de carte © IGN</span>
+</div></footer>
+
+<div class="dock" id="dock"><a href="#" class="d-tel" data-tel>📞 Appeler</a><button class="d-main" data-open>Estimer mon chantier</button></div>
+
+<div class="sim" id="sim" role="dialog" aria-modal="true" aria-label="Estimer mon chantier">
+  <div class="sim-top"><div class="prog"><i id="simProg"></i></div><button id="simClose" aria-label="Fermer">✕</button></div>
+  <div class="sim-body"><div class="sim-in" id="simIn"></div></div>
+  <div class="sim-foot"><button class="btn back" id="simBack" aria-label="Retour">←</button><button class="btn btn-main" id="simNext" disabled>Continuer</button></div>
+</div>
+<input type="file" id="fileIn" accept="image/*" multiple hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =================== DONNÉES (à remplacer pour chaque client) =================== */
+const BASE = {name:'Thouars', lat:46.9766, lon:-0.2153, radiusKm:35};
+const NEEDS = [
+  {id:'refection',e:'🏠',t:'Refaire ma toiture',s:'Toiture usée, ardoises qui glissent',unit:'m²',min:30,max:300,def:110,mat:true,price:{ardoise:[140,220],tuile:[95,160],zinc:[110,190]},split:[['Dépose & évacuation',15],['Échafaudage & sécurité',10],['Fournitures',40],['Main-d\'œuvre',35]]},
+  {id:'fuite',e:'💧',t:'J\'ai une fuite',s:'Tache au plafond, infiltration',unit:'zone',fixed:[250,900],split:[['Recherche de fuite',25],['Fournitures',20],['Main-d\'œuvre',45],['Déplacement',10]]},
+  {id:'demoussage',e:'🌿',t:'Nettoyer / démousser',s:'Mousse, lichen, toit noirci',unit:'m²',min:30,max:300,def:110,price:{all:[18,35]},split:[['Nettoyage',45],['Traitement hydrofuge',30],['Sécurité',10],['Main-d\'œuvre',15]]},
+  {id:'velux',e:'🪟',t:'Fenêtre de toit',s:'Pose ou remplacement',unit:'fenêtre',min:1,max:6,def:1,price:{all:[950,2100]},split:[['Fenêtre & raccord',55],['Main-d\'œuvre',35],['Finitions',10]]},
+  {id:'zinc',e:'🌧️',t:'Gouttières & zinguerie',s:'Gouttières, descentes, noues',unit:'mètre',min:5,max:60,def:20,price:{all:[45,95]},split:[['Zinc & fixations',50],['Main-d\'œuvre',40],['Dépose ancienne',10]]},
+  {id:'isolation',e:'🧱',t:'Isoler par le toit',s:'Combles, sarking, confort',unit:'m²',min:30,max:250,def:90,price:{all:[60,140]},split:[['Isolant',45],['Main-d\'œuvre',40],['Pare-vapeur & finitions',15]]},
+];
+const MATS = [{id:'ardoise',e:'⬛',t:'Ardoise',s:'Le plus courant dans le Thouarsais'},{id:'tuile',e:'🟧',t:'Tuile',s:'Tige de botte, mécanique, canal'},{id:'zinc',e:'⬜',t:'Zinc / bac acier',s:'Toit plat, annexe, garage'},{id:'nsp',e:'❔',t:'Je ne sais pas',s:'Pas de souci, on regardera'}];
+const WHEN = [{id:'urgent',e:'🚨',t:'Urgent',s:'Dans les 7 jours'},{id:'mois',e:'📅',t:'Dans le mois',s:'Avant la fin du mois prochain'},{id:'3mois',e:'🗓️',t:'Dans les 3 mois',s:'Je planifie'},{id:'info',e:'💭',t:'Je me renseigne',s:'Pas de date pour l\'instant'}];
+const FP = (f,w=1400) => `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=${w}`;
+const CASES = [
+  {tab:'Réfection complète', title:'Toiture d\'une villa classée, refaite à neuf',
+   text:'Ancienne couverture déposée jusqu\'à la charpente, charpente isolée avant la pose des tuiles, mitre de cheminée d\'origine remise en place, puis pose de la nouvelle couverture.',
+   facts:[['11 mois','oct. 2016 → sept. 2017'],['3 étapes','photographiées'],['Monument','historique']],
+   stages:[
+     {d:'Déc. 2016',l:'Charpente mise à nu',c:'Toute l\'ancienne couverture est déposée : la charpente est visible.',img:FP('Villa Majorelle Toiture mise à nue.jpg')},
+     {d:'Mars 2017',l:'Isolation & écran',c:'Charpente isolée avant la pose des tuiles, mitre de cheminée remise en place.',img:FP('Villa Majorelle Toiture en cours.jpg')},
+     {d:'Juil. 2017',l:'Couverture posée',c:'Les tuiles neuves sont posées : le chantier est terminé.',img:FP('Villa Majorelle toiture après rénovation.jpg')}],
+   credit:'Villa Majorelle, Nancy — photos © <a href="https://commons.wikimedia.org/wiki/File:Villa_Majorelle_Toiture_mise_%C3%A0_nue.jpg" target="_blank" rel="noopener">Musée de l\'École de Nancy</a>, licence <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.fr" target="_blank" rel="noopener">CC BY-SA 4.0</a>.'},
+  {tab:'Remplacement de bardeaux', title:'Atelier : vieux bardeaux remplacés',
+   text:'Les vieux bardeaux sont arrachés, puis la nouvelle couverture est posée rangée après rangée. Sur la photo du milieu, l\'ancien et le neuf se voient sur le même toit.',
+   facts:[['2 jours','entre l\'avant et la fin'],['1 photo','ancien et neuf côte à côte'],['Août 2010','Dakota du Sud']],
+   stages:[
+     {d:'Jour 1 · 8 h',l:'Avant',c:'Bardeaux usés, décolorés : le toit est prêt à être découvert.',img:FP('Heated Shop Roof- Before (4972114872).jpg')},
+     {d:'Jour 1 · soir',l:'Moitié refaite',c:'Sur la même photo : la partie refaite et la partie d\'origine, côte à côte.',img:FP('Heated Shop Roof (4972114910).jpg')},
+     {d:'Jour 2',l:'Presque terminé',c:'Dernières rangées en cours de pose.',img:FP('Heated Shop Roof Nearly Done (4972114916).jpg')}],
+   credit:'Camp Crook (États-Unis) — photos US Forest Service, <a href="https://commons.wikimedia.org/wiki/File:Heated_Shop_Roof_(4972114910).jpg" target="_blank" rel="noopener">domaine public</a>.'},
+];
+
+/* =================== OUTILS =================== */
+const $ = s => document.querySelector(s);
+const fmt = n => Math.round(n).toLocaleString('fr-FR')+' €';
+const round = n => Math.round(n/50)*50;
+const esc = s => String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const toast = t => {const el=$('#toast');el.textContent=t;el.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>el.classList.remove('on'),2800)};
+const debounce = (f,ms=250)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>f(...a),ms)}};
+const km = (a,b)=>{const R=6371,r=Math.PI/180,dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r,x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x))};
+document.querySelectorAll('[data-tel]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();toast('Démo : ici, le téléphone de l\'artisan sonne directement 📞')}));
+
+/* autocomplétion générique */
+function autocomplete(input, box, fetcher, onPick){
+  let items=[];
+  const close=()=>box.classList.remove('on');
+  const run=debounce(async()=>{
+    const q=input.value.trim(); if(q.length<2){close();return}
+    try{ items=await fetcher(q) }catch(e){ items=[] }
+    if(!items.length){box.innerHTML='<button disabled>Aucun résultat</button>';box.classList.add('on');return}
+    box.innerHTML=items.map((it,i)=>`<button data-i="${i}">${esc(it.label)}<small>${esc(it.sub||'')}</small></button>`).join('');
+    box.classList.add('on');
+    box.querySelectorAll('[data-i]').forEach(b=>b.onclick=()=>{const it=items[+b.dataset.i];input.value=it.label;close();onPick(it)});
+  },220);
+  input.addEventListener('input',run);
+  input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(items[0]&&box.classList.contains('on')){const it=items[0];input.value=it.label;close();onPick(it)}else run()} if(e.key==='Escape')close()});
+  document.addEventListener('click',e=>{if(!box.contains(e.target)&&e.target!==input)close()});
+}
+const geoAddress = async q => {
+  const r=await fetch(`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&autocomplete=1&limit=5&lat=${BASE.lat}&lon=${BASE.lon}`);
+  const j=await r.json();
+  return j.features.map(f=>({label:f.properties.label,sub:f.properties.context,lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0],type:f.properties.type}));
+};
+const geoCommune = async q => {
+  const r=await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(q)}&fields=nom,centre,codesPostaux,codeDepartement&boost=population&limit=6`);
+  const j=await r.json();
+  const list=j.filter(c=>c.centre).map(c=>({label:c.nom,sub:(c.codesPostaux||[])[0]+' · '+c.codeDepartement,lat:c.centre.coordinates[1],lon:c.centre.coordinates[0]}));
+  if(list.length) return list;
+  const g=await fetch(`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&autocomplete=1&limit=5&lat=${BASE.lat}&lon=${BASE.lon}`);
+  return (await g.json()).features.map(f=>({label:f.properties.type==='municipality'?f.properties.city:(f.properties.name+', '+f.properties.city),sub:f.properties.postcode+' · '+f.properties.context,lat:f.geometry.coordinates[1],lon:f.geometry.coordinates[0]}));
+};
+
+/* =================== MESURE SATELLITE =================== */
+let skyMap, pts=[], vtx=[], poly=null, pitchDeg=35, measured=null;
+function initSky(){
+  skyMap=L.map('skyMap',{zoomControl:true,attributionControl:false,scrollWheelZoom:false,tap:true}).setView([46.97655,-0.21445],19);
+  L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg',{maxNativeZoom:19,maxZoom:21,minZoom:6}).addTo(skyMap);
+  skyMap.on('click',e=>addPt(e.latlng));
+}
+function addPt(ll){
+  pts.push(ll);
+  const m=L.marker(ll,{draggable:true,icon:L.divIcon({className:'vtx'+(pts.length===1?' first':'')})}).addTo(skyMap);
+  m.on('drag',()=>{pts[vtx.indexOf(m)]=m.getLatLng();drawPoly()});
+  vtx.push(m); drawPoly();
+}
+function drawPoly(){
+  if(poly){skyMap.removeLayer(poly);poly=null}
+  if(pts.length>=2) poly=L.polygon(pts,{color:'#ffc21a',weight:3,fillColor:'#ffc21a',fillOpacity:.28,dashArray:pts.length<3?'6 6':null,interactive:false}).addTo(skyMap);
+  updSky();
+}
+function groundArea(){ // m², projection locale (suffisant à l'échelle d'un toit)
+  if(pts.length<3) return 0;
+  const R=6371008.8, r=Math.PI/180, lat0=pts.reduce((s,p)=>s+p.lat,0)/pts.length*r;
+  const xy=pts.map(p=>[R*p.lng*r*Math.cos(lat0),R*p.lat*r]); let a=0;
+  for(let i=0;i<xy.length;i++){const [x1,y1]=xy[i],[x2,y2]=xy[(i+1)%xy.length];a+=x1*y2-x2*y1}
+  return Math.abs(a)/2;
+}
+function updSky(){
+  const g=groundArea(), roof=g/Math.cos(pitchDeg*Math.PI/180);
+  $('#skyUndo').disabled=!pts.length; $('#skyClear').disabled=!pts.length;
+  const hint=$('#skyHint');
+  hint.textContent = pts.length===0?'Touchez les coins de votre toit':pts.length<3?`Encore ${3-pts.length} coin${3-pts.length>1?'s':''} au minimum`:'Déplacez les coins pour ajuster';
+  if(g>0){
+    measured=Math.round(roof);
+    $('#roofArea').textContent=measured;
+    $('#groundArea').textContent=`Surface au sol : ${Math.round(g)} m² · pente ${pitchDeg}°`;
+    $('#skyGo').disabled=false;
+  } else { measured=null; $('#roofArea').textContent='—'; $('#groundArea').textContent='Surface au sol : —'; $('#skyGo').disabled=true }
+}
+$('#skyUndo').onclick=()=>{pts.pop();const m=vtx.pop();if(m)skyMap.removeLayer(m);drawPoly()};
+$('#skyClear').onclick=()=>{pts=[];vtx.forEach(m=>skyMap.removeLayer(m));vtx=[];drawPoly()};
+document.querySelectorAll('#pitch button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#pitch button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');pitchDeg=+b.dataset.p;updSky()});
+$('#skyGo').onclick=()=>openSim({need:'refection',qty:Math.min(300,Math.max(30,measured)),fromSky:true});
+autocomplete($('#addrIn'),$('#addrSugg'),geoAddress,it=>{ $('#skyClear').click(); skyMap.setView([it.lat,it.lon],it.type==='housenumber'?19:17); toast(it.type==='housenumber'?'Voilà votre maison ! Touchez les coins du toit 👆':'Zoomez sur votre maison, puis touchez les coins du toit') });
+
+/* =================== ZONE =================== */
+let zoneMap, destLayer;
+function initZone(){
+  zoneMap=L.map('zoneMap',{scrollWheelZoom:false,dragging:!L.Browser.mobile,tap:false,attributionControl:true}).setView([BASE.lat,BASE.lon],9);
+  zoneMap.attributionControl.setPrefix(false);
+  L.tileLayer('https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png',{maxZoom:18,className:'night',attribution:'© IGN — Plan IGN'}).addTo(zoneMap);
+  L.circle([BASE.lat,BASE.lon],{radius:BASE.radiusKm*1000,color:'#ffc21a',weight:2,dashArray:'6 8',fillColor:'#ffc21a',fillOpacity:.08,interactive:false}).addTo(zoneMap);
+  L.marker([BASE.lat,BASE.lon],{icon:L.divIcon({className:'pin'}),interactive:false}).addTo(zoneMap).bindTooltip('Gallien · Thouars',{permanent:true,direction:'right',offset:[12,0],className:'lbl'});
+  zoneMap.fitBounds(L.latLng(BASE.lat,BASE.lon).toBounds(BASE.radiusKm*2300));
+}
+function showDest(it){
+  const d=km(BASE,it), inZone=d<=BASE.radiusKm, mins=Math.round(d*1.3/65*60+4);
+  if(destLayer) zoneMap.removeLayer(destLayer);
+  destLayer=L.layerGroup([
+    L.polyline([[BASE.lat,BASE.lon],[it.lat,it.lon]],{color:inZone?'#2fbf71':'#ff8a3d',weight:3,dashArray:'2 8',lineCap:'round'}),
+    L.marker([it.lat,it.lon],{icon:L.divIcon({className:'dest'+(inZone?'':' out')})}).bindTooltip(esc(it.label),{permanent:true,direction:'right',offset:[12,0],className:'lbl'})
+  ]).addTo(zoneMap);
+  zoneMap.flyToBounds(L.latLngBounds([[BASE.lat,BASE.lon],[it.lat,it.lon]]).pad(.6),{duration:.8,maxZoom:11});
+  const c=$('#zoneCard');
+  c.innerHTML = inZone
+    ? `<div class="row"><div><h4>✅ Oui, on vient à ${esc(it.label)}</h4><p>Visite et déplacement offerts.</p></div></div><div class="kpis"><div><b>${d<1?'<1':Math.round(d)} km</b><span>de notre atelier</span></div><div><b>≈ ${mins} min</b><span>de route</span></div><div><b>24 h</b><span>en cas d'urgence</span></div></div><button class="btn btn-main" data-open-z>Estimer mon chantier →</button>`
+    : `<div class="row"><div><h4>🟠 ${esc(it.label)} est un peu loin</h4><p>${Math.round(d)} km, au-delà de notre zone de ${BASE.radiusKm} km. Appelez-nous : pour un gros chantier, on étudie.</p></div></div><div style="margin-top:12px"><a class="btn btn-main" href="#" data-tel-z>📞 Nous appeler</a></div>`;
+  c.classList.add('on');
+  c.querySelector('[data-open-z]')?.addEventListener('click',()=>openSim({city:it.label}));
+  c.querySelector('[data-tel-z]')?.addEventListener('click',e=>{e.preventDefault();toast('Démo : ici, le téléphone de l\'artisan sonne directement 📞')});
+}
+autocomplete($('#cityIn'),$('#citySugg'),geoCommune,showDest);
+$('#geoBtn').onclick=()=>{
+  if(!navigator.geolocation) return toast('Géolocalisation indisponible sur cet appareil');
+  navigator.geolocation.getCurrentPosition(async p=>{
+    try{const r=await fetch(`https://geo.api.gouv.fr/communes?lat=${p.coords.latitude}&lon=${p.coords.longitude}&fields=nom`);const j=await r.json();
+      showDest({label:j[0]?.nom||'Votre position',lat:p.coords.latitude,lon:p.coords.longitude}); $('#cityIn').value=j[0]?.nom||''}
+    catch(e){showDest({label:'Votre position',lat:p.coords.latitude,lon:p.coords.longitude})}
+  },()=>toast('Position refusée : tapez plutôt votre commune'));
+};
+
+/* lancer les cartes quand Leaflet est là */
+function bootMaps(){ if(!window.L) return setTimeout(bootMaps,100); initSky(); initZone(); }
+bootMaps();
+
+/* =================== CHANTIERS RÉELS =================== */
+let ci=0;
+const stage=$('#stage'), scrub=$('#scrub');
+$('#cases').innerHTML=CASES.map((c,i)=>`<button data-c="${i}">${c.tab}</button>`).join('');
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>showCase(+b.dataset.c));
+function showCase(i){
+  ci=i; const c=CASES[i];
+  document.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('on',+b.dataset.c===i));
+  stage.querySelectorAll('img').forEach(x=>x.remove());
+  c.stages.forEach((s,j)=>stage.insertAdjacentHTML('afterbegin',`<img src="${s.img}" alt="${esc(s.l)} — ${esc(s.c)}" data-j="${j}" style="opacity:${j===0?1:0}">`));
+  scrub.max=(c.stages.length-1)*100; scrub.value=0;
+  $('#ticks').innerHTML=c.stages.map((s,j)=>`<button data-t="${j}"><b style="display:block;font-size:13px">${s.l}</b>${s.d}</button>`).join('');
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>animTo(+b.dataset.t*100));
+  $('#cTitle').textContent=c.title; $('#cText').textContent=c.text;
+  $('#cFacts').innerHTML=c.facts.map(f=>`<div><b>${f[0]}</b><span>${f[1]}</span></div>`).join('');
+  $('#cCredit').innerHTML=c.credit;
+  paint();
+}
+function paint(){
+  const v=+scrub.value/100, c=CASES[ci];
+  stage.querySelectorAll('img').forEach(im=>{const j=+im.dataset.j;im.style.opacity=Math.max(0,1-Math.abs(v-j)) + (j===Math.floor(v)?0:0)});
+  // l'image la plus proche reste opaque pour éviter un fondu trop clair
+  const near=Math.round(v); stage.querySelectorAll('img').forEach(im=>{const j=+im.dataset.j; if(j<near) im.style.opacity=0; if(j===near) im.style.opacity=1; im.style.zIndex=j===near?1:0});
+  const nxt=v>near?near+1:near-1, img=stage.querySelector(`img[data-j="${nxt}"]`); if(img){img.style.zIndex=1;img.style.opacity=Math.abs(v-near)}
+  const s=c.stages[near]; $('#stBadge').textContent=s.d; $('#stCap').textContent=s.c;
+  document.querySelectorAll('[data-t]').forEach(b=>b.classList.toggle('on',+b.dataset.t===near));
+}
+scrub.addEventListener('input',paint);
+function animTo(target){const start=+scrub.value,t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/700),e=1-Math.pow(1-k,3);scrub.value=start+(target-start)*e;paint();if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+showCase(0);
+const reelObs=new IntersectionObserver(es=>{if(!es[0].isIntersecting)return;reelObs.disconnect();setTimeout(()=>animTo(scrub.max),500)},{threshold:.5});
+reelObs.observe(stage);
+
+/* =================== BESOINS =================== */
+$('#needGrid').innerHTML = NEEDS.map(n=>`<button class="need" data-need="${n.id}" style="background:var(--ink);color:#fff"><span class="ic">${n.e}</span><span><strong>${n.t}</strong><small>${n.s}</small></span></button>`).join('');
+document.querySelectorAll('[data-need]').forEach(b=>b.addEventListener('click',()=>openSim({need:b.dataset.need})));
+document.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>openSim()));
+
+/* =================== SIMULATEUR =================== */
+let st={};
+const sim=$('#sim'), simIn=$('#simIn'), next=$('#simNext'), back=$('#simBack');
+const SLOTS=(()=>{const d=new Date();d.setDate(d.getDate()+1);if(d.getDay()===0)d.setDate(d.getDate()+1);let day=d.toLocaleDateString('fr-FR',{weekday:'long'});day=day[0].toUpperCase()+day.slice(1);return[{id:'a',t:`${day} 8h–10h`},{id:'b',t:`${day} 12h–14h`},{id:'c',t:`${day} 18h–20h`},{id:'sms',t:'Plutôt par SMS'}]})();
+function flow(){
+  const n=NEEDS.find(x=>x.id===st.need), f=['need'];
+  if(!n) return f;
+  if(n.mat) f.push('mat');
+  if(!n.fixed) f.push('qty');
+  f.push('when','photos','result','done');
+  return f;
+}
+function openSim(o={}){
+  st={need:o.need||null,mat:null,qty:o.qty??null,fromSky:!!o.fromSky,when:null,photos:[],slot:'a',city:o.city||'',i:o.need?1:0};
+  sim.classList.add('open');document.body.style.overflow='hidden';render();
+}
+function closeSim(){sim.classList.remove('open');document.body.style.overflow=''}
+$('#simClose').onclick=closeSim;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sim.classList.contains('open'))closeSim()});
+back.onclick=()=>{if(st.i>0){st.i--;render()}};
+next.onclick=()=>{
+  const step=flow()[st.i];
+  if(step==='result'){ if(!validContact()) return }
+  if(step==='done'){closeSim();return}
+  st.i++;render();
+};
+function opts(list,key){
+  return `<div class="opts two">`+list.map(o=>`<button class="opt ${st[key]===o.id?'sel':''}" data-k="${key}" data-v="${o.id}"><span class="e">${o.e}</span><span><b>${o.t}</b><small>${o.s}</small></span></button>`).join('')+`</div>`;
+}
+function estimate(){
+  const n=NEEDS.find(x=>x.id===st.need);
+  let [lo,hi]= n.fixed ? n.fixed : (()=>{const p=n.price.all||n.price[(!st.mat||st.mat==='nsp')?'ardoise':st.mat];return[p[0]*st.qty,p[1]*st.qty]})();
+  if(st.when==='urgent'){lo*=1.05;hi*=1.1}
+  return [round(lo),round(hi)];
+}
+function render(){
+  const f=flow(), step=f[st.i], n=NEEDS.find(x=>x.id===st.need);
+  $('#simProg').style.width=(n?Math.min(100,st.i/(f.length-1)*100):4)+'%';
+  back.style.visibility=st.i>0&&step!=='done'?'visible':'hidden';
+  next.disabled=false; next.textContent='Continuer';
+  let h='';
+  if(step==='need'){ h=`<div class="eyebrow">Étape 1</div><h3>De quoi avez-vous besoin&nbsp;?</h3>${opts(NEEDS,'need')}`; next.disabled=!st.need }
+  if(step==='mat'){ h=`<div class="eyebrow">${n.e} ${n.t}</div><h3>Votre toit est en…</h3>${opts(MATS,'mat')}`; next.disabled=!st.mat }
+  if(step==='qty'){
+    if(st.qty==null) st.qty=n.def;
+    const lbl={'m²':'Surface du toit','fenêtre':'Nombre de fenêtres','mètre':'Longueur de gouttières'}[n.unit];
+    const hint=n.unit==='m²'?'Repère : une maison de 100 m² au sol a environ 120 à 140 m² de toiture.':n.unit==='mètre'?'Repère : une maison simple a 20 à 30 m de gouttières.':'Remplacement ou création, même prix de base.';
+    const pl=n.unit!=='m²'&&st.qty>1?'s':'';
+    h=`<div class="eyebrow">${n.e} ${n.t}</div><h3>${lbl}&nbsp;?</h3>
+      ${st.fromSky&&n.unit==='m²'?`<div class="measured">📡 Mesurée sur la vue satellite : <b>${st.qty} m²</b>. Vous pouvez ajuster.</div>`:''}
+      <div class="range-box"><div class="range-val"><span id="qv">${st.qty}</span> <small>${n.unit}${pl}</small></div><input type="range" id="qr" min="${n.min}" max="${n.max}" step="${n.unit==='m²'?5:1}" value="${st.qty}" aria-label="${lbl}"><div class="range-hint">${hint}</div></div>
+      ${n.unit==='m²'&&!st.fromSky?`<button class="sat-link" id="toSky"><span style="font-size:28px">📡</span><span><b>Je ne connais pas ma surface</b><small>Mesurez-la en 1 minute sur la vue satellite de votre maison</small></span></button>`:''}`;
+  }
+  if(step==='when'){ h=`<div class="eyebrow">Presque fini</div><h3>Pour quand&nbsp;?</h3>${opts(WHEN,'when')}`; next.disabled=!st.when }
+  if(step==='photos'){
+    h=`<div class="eyebrow">Facultatif</div><h3>Une photo du toit&nbsp;?</h3><p class="lead">${st.need==='fuite'?'Une photo de la tache ou de la zone abîmée aide Thomas à venir avec le bon matériel.':'Prise depuis le jardin ou la rue, elle aide Thomas à préparer la visite.'}</p>
+      <div class="drop" id="drop"><span style="font-size:34px">📷</span><b>Ajouter des photos</b><small>Depuis votre téléphone ou ordinateur</small></div>
+      <div class="thumbs">${st.photos.map(u=>`<img src="${u}" alt="Photo ajoutée">`).join('')}</div>`;
+    next.textContent= st.photos.length?'Voir mon prix':'Passer et voir mon prix';
+  }
+  if(step==='result'){
+    const [lo,hi]=estimate(), mid=(lo+hi)/2;
+    const recap=[n.t, st.mat&&MATS.find(m=>m.id===st.mat).t, !n.fixed&&(st.qty+' '+n.unit+(n.unit!=='m²'&&st.qty>1?'s':'')), WHEN.find(w=>w.id===st.when).t, st.photos.length&&`${st.photos.length} photo${st.photos.length>1?'s':''}`].filter(Boolean);
+    h=`<div class="result"><div class="lbl">Votre fourchette estimée</div><div class="price">${fmt(lo)} – ${fmt(hi)}</div><div class="lbl">TTC, fournitures et pose comprises</div>
+      <div class="recap">${recap.map(r=>`<span>${r}</span>`).join('')}</div>
+      <div class="split">${n.split.map(([k,p])=>`<div class="r"><span>${k}</span><span>≈ ${fmt(round(mid*p/100))}</span><i style="--w:${p}%"></i></div>`).join('')}</div>
+      <div class="disc">Estimation indicative basée sur nos chantiers récents. Le prix exact est fixé après la visite gratuite.</div></div>
+      <div class="subh">Quand Thomas vous rappelle-t-il&nbsp;?</div>
+      <div class="slots">${SLOTS.map(s=>`<button class="slot ${st.slot===s.id?'sel':''}" data-slot="${s.id}"><b>${s.t.split(' ').slice(0,1).join(' ')}</b><small>${s.t.split(' ').slice(1).join(' ')}</small></button>`).join('')}</div>
+      <div class="subh">Vos coordonnées</div>
+      <div class="fields"><label for="fN">Prénom</label><input id="fN" autocomplete="given-name" value="${esc(st.name)}"><label for="fT">Téléphone</label><input id="fT" type="tel" inputmode="tel" autocomplete="tel" value="${esc(st.tel)}"><label for="fC">Commune</label><input id="fC" autocomplete="address-level2" value="${esc(st.city)}"></div>`;
+    next.textContent='Recevoir mon devis';
+  }
+  if(step==='done'){
+    const s=SLOTS.find(x=>x.id===st.slot), ref='GC-'+String(Date.now()).slice(-5);
+    const when = st.slot==='sms' ? 'vous envoie un SMS dans l\'heure' : `vous rappelle <b style="color:#fff">${s.t}</b>`;
+    h=`<div class="done"><div class="ok">✓</div><h3>C'est noté, ${esc(st.name)}&nbsp;!</h3><p>Thomas ${when} pour caler la visite gratuite à ${esc(st.city)}.</p>
+      <div class="ticket"><div class="tt"><span>Dossier ${ref}</span><span>${n.e} ${n.t}</span></div><div class="tl">
+        <div><b>1</b>${st.slot==='sms'?'SMS de Thomas':'Appel de Thomas'} pour fixer la visite</div>
+        <div><b>2</b>Visite gratuite, mesures vérifiées sur le toit</div>
+        <div><b>3</b>Devis détaillé par SMS sous 48 h</div>
+        <div><b>4</b>Lien de suivi de chantier avec photos chaque soir</div></div></div>
+      <p style="font-size:13px;margin-top:22px">Démo : aucune donnée n'a été envoyée.</p></div>`;
+    next.textContent='Fermer'; $('#simProg').style.width='100%';
+  }
+  simIn.innerHTML=`<div class="step">${h}</div>`;
+  simIn.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.k; st[k]=b.dataset.v;
+    if(k==='need'){st.mat=null; if(!st.fromSky) st.qty=null}
+    render(); setTimeout(()=>next.click(),200);
+  });
+  simIn.querySelectorAll('[data-slot]').forEach(b=>b.onclick=()=>{saveContact();st.slot=b.dataset.slot;render()});
+  const qr=$('#qr'); if(qr) qr.oninput=()=>{st.qty=+qr.value;$('#qv').textContent=st.qty};
+  $('#toSky')?.addEventListener('click',()=>{closeSim();location.hash='';document.getElementById('ciel').scrollIntoView({behavior:'smooth'});setTimeout(()=>$('#addrIn').focus({preventScroll:true}),700)});
+  $('#drop')?.addEventListener('click',()=>$('#fileIn').click());
+  sim.querySelector('.sim-body').scrollTop=0;
+}
+$('#fileIn').onchange=e=>{[...e.target.files].slice(0,8-st.photos.length).forEach(f=>st.photos.push(URL.createObjectURL(f)));e.target.value='';render()};
+function saveContact(){ if($('#fN')){st.name=$('#fN').value.trim();st.tel=$('#fT').value.trim();st.city=$('#fC').value.trim()} }
+function validContact(){
+  saveContact();
+  if(!st.name||st.tel.replace(/\D/g,'').length<10||!st.city){toast('Il manque votre prénom, un numéro à 10 chiffres ou la commune');return false}
+  return true;
+}
+
+/* =================== ANIMATIONS =================== */
+const feedObs=new IntersectionObserver(es=>es.forEach(e=>{
+  if(!e.isIntersecting)return; feedObs.disconnect();
+  document.querySelectorAll('#feed .msg').forEach((m,i)=>setTimeout(()=>m.classList.add('in'),300+i*900));
+  setTimeout(()=>$('#pbar').style.width='38%',200);
+}),{threshold:.4});
+feedObs.observe($('.phone'));
+const rv=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');rv.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll('.rev').forEach(el=>rv.observe(el));
+const dock=$('#dock');
+addEventListener('scroll',()=>dock.classList.toggle('show',scrollY>innerHeight*.6),{passive:true});
+</script>
+</body>
+</html>

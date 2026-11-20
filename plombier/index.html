@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brunet Plomberie — Plombier chauffagiste à Thouars (démo)</title>
+<meta name="description" content="Site de démonstration : plombier-chauffagiste fictif à Thouars. Guide SOS fuite, suivi du plombier en route, estimation en 30 secondes.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="../_engine/engine.css">
+<style>
+:root{--ink:#0a1420;--slate:#13212f;--slate-2:#1b2c3d;--acc:#39a9ff;--acc-d:#1793f5;--on-acc:#04121f;--acc-txt:#0a6fc2;--acc-soft:rgba(57,169,255,.13)}
+/* ===== SOS fuite ===== */
+.sos-cta{padding:26px;display:grid;gap:16px;text-align:center}
+.sos-big{position:relative;width:min(260px,70vw);aspect-ratio:1;margin:8px auto;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ff7a7a,#e2262b 60%,#a80f14);color:#fff;font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;box-shadow:0 20px 50px -10px rgba(226,38,43,.7),inset 0 -8px 20px rgba(0,0,0,.25);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px}
+.sos-big::before,.sos-big::after{content:"";position:absolute;inset:-10px;border-radius:50%;border:2px solid rgba(255,90,90,.5);animation:ring 2.4s infinite}
+.sos-big::after{animation-delay:1.2s}
+@keyframes ring{from{transform:scale(.9);opacity:1}to{transform:scale(1.25);opacity:0}}
+.sos-big small{display:block;font-family:var(--body);font-weight:500;font-size:14px;opacity:.9;margin-top:6px}
+.sos-sub{color:var(--muted-d);font-size:14px}
+.sos{position:fixed;inset:0;z-index:2500;background:#0a1420;color:#fff;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .3s}
+.sos.open{opacity:1;pointer-events:auto}
+.sos-top{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#e2262b}
+.sos-top b{font-family:var(--display);font-size:18px;flex:1}
+.sos-top button{width:38px;height:38px;border-radius:50%;background:rgba(0,0,0,.2);font-size:16px}
+.sos-body{flex:1;overflow-y:auto;padding:18px 20px 30px}
+.sos-in{max-width:620px;margin:0 auto}
+.sos-prog{display:flex;gap:6px;margin-bottom:18px}
+.sos-prog i{flex:1;height:6px;border-radius:9px;background:rgba(255,255,255,.15)}
+.sos-prog i.on{background:var(--acc)}
+.sos-prog i.done{background:var(--ok)}
+.card{background:var(--slate);border:1px solid var(--line);border-radius:24px;padding:24px;animation:up .35s}
+.card .ill{font-size:56px;line-height:1}
+.card h3{font-size:clamp(28px,6vw,40px);margin:14px 0 10px}
+.card p{color:#cfd6dc;font-size:16.5px}
+.card .where{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.card .where span{background:rgba(255,255,255,.08);border-radius:99px;padding:6px 12px;font-size:13.5px}
+.card .warn{margin-top:14px;background:rgba(226,38,43,.15);border:1px solid rgba(226,38,43,.45);color:#ffd2d2;border-radius:14px;padding:12px 14px;font-size:14.5px}
+.sos-skip{display:block;margin:14px auto 0;color:var(--muted-d);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.sos-foot{padding:14px 20px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:10px;justify-content:center}
+.sos-foot .btn{flex:1;max-width:360px}
+#trackMap{height:260px;border-radius:20px;overflow:hidden;margin:14px 0}
+.eta{display:flex;align-items:baseline;gap:10px}
+.eta b{font-family:var(--display);font-size:56px;line-height:1;color:var(--acc)}
+.timeline{display:grid;gap:0;margin-top:16px}
+.timeline div{display:flex;gap:12px;align-items:center;padding:10px 0;color:var(--muted-d);font-size:15px;transition:color .3s}
+.timeline div i{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.25);flex:none;display:grid;place-items:center;font-style:normal;font-size:12px}
+.timeline div i::after{content:'✓';color:transparent}
+.timeline div.on i::after{color:#fff}
+.timeline div.on{color:#fff}
+.timeline div.on i{background:var(--ok);border-color:var(--ok)}
+.van{font-size:26px!important;width:34px!important;height:34px!important;margin:-17px 0 0 -17px!important;display:grid;place-items:center;filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
+.sos .search input{background:var(--ink)}
+</style>
+</head>
+<body>
+
+<div class="demo"><b>●</b> Site de démonstration — entreprise fictive. Conçu pour montrer ce que je peux faire pour votre entreprise.</div>
+<nav class="nav"><div class="wrap">
+  <a class="logo" href="#"><i>◆</i>Brunet</a>
+  <div class="links"><a href="#sos">SOS fuite</a><a href="#estimer">Estimer</a><a href="#suivi">Suivi</a><a href="#chantiers">Chantiers</a><a href="#zone">Zone</a></div>
+  <a class="tel" href="#" data-tel>05 49 00 00 01</a>
+</div></nav>
+
+<header class="hero">
+  <img src="https://images.unsplash.com/photo-1596394723269-b2cbca4e6313?w=2000&q=80&auto=format&fit=crop" alt="Eau qui s'échappe d'un robinet en laiton">
+  <div class="wrap">
+    <div class="live"><b></b>Mathieu est disponible aujourd'hui</div>
+    <h1>L'eau, le chauffage. <em>Réglés</em> vite et bien.</h1>
+    <p class="sub">Plombier-chauffagiste à Thouars depuis 2009. Une fuite ? On vous guide en direct pendant qu'on arrive. Vos travaux ? Prix estimé en 30 secondes.</p>
+    <div class="ctas">
+      <a class="btn btn-alert" href="#sos">💧 J'ai une fuite</a>
+      <button class="btn btn-ghost" data-open>Estimer mes travaux</button>
+    </div>
+    <div class="proof">
+      <div><strong>4,9 ★</strong><span>112 avis Google</span></div>
+      <div><strong>&lt; 2 h</strong><span>en urgence</span></div>
+      <div><strong>RGE</strong><span>QualiPAC · décennale</span></div>
+      <div><strong>7j/7</strong><span>pour les fuites</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ SOS FUITE ============ -->
+<section id="sos"><div class="panel"><div class="wrap split2">
+  <div class="rev">
+    <div class="eyebrow">Nouveau · SOS fuite</div>
+    <div class="head" style="margin-bottom:26px"><h2>Une fuite&nbsp;? On vous guide pendant qu'on arrive.</h2>
+    <p>En cas de fuite, les 10 premières minutes comptent. Appuyez sur le bouton : on vous dit quoi faire étape par étape, et vous suivez Mathieu en route jusqu'à chez vous.</p></div>
+    <div class="steps-mini">
+      <div><b>1</b>5 gestes simples pour limiter les dégâts</div>
+      <div><b>2</b>L'alerte part directement chez Mathieu</div>
+      <div><b>3</b>Vous suivez son arrivée en direct, minute par minute</div>
+    </div>
+  </div>
+  <div class="app rev"><div class="sos-cta">
+    <button class="sos-big" id="sosOpen">J'ai une fuite<br>maintenant<small>Appuyez ici</small></button>
+    <div class="sos-sub">Guide gratuit, utilisable même sans nous appeler.</div>
+  </div></div>
+</div></div></section>
+
+<section id="estimer" style="padding-top:0"><div class="wrap">
+  <div class="head rev"><div class="eyebrow">Estimation instantanée</div><h2>Quels travaux&nbsp;?</h2><p>Choisissez, répondez à 3 questions, voyez tout de suite une fourchette de prix détaillée. Votre numéro n'est demandé qu'après.</p></div>
+  <div class="est-grid" id="needGrid"></div>
+  <p class="note">⏱ 30 secondes · fourchette indicative, confirmée par un devis gratuit.</p>
+</div></section>
+
+<section id="suivi" style="padding-top:20px"><div class="wrap track">
+  <div class="rev">
+    <div class="eyebrow">Suivi de chantier</div>
+    <div class="head" style="margin-bottom:30px"><h2>Votre salle de bain avance. <span class="hl">Vous le voyez.</span></h2><p>Pendant les travaux, une photo et un message chaque soir. Même si vous êtes au travail.</p></div>
+    <div class="steps-list">
+      <div class="sl"><span>1</span><div><b>Visite et devis sous 48 h</b><p>Mathieu mesure, vérifie les arrivées et évacuations, vous conseille.</p></div></div>
+      <div class="sl"><span>2</span><div><b>Une date ferme, tenue</b><p>Début et fin connus avant de signer.</p></div></div>
+      <div class="sl"><span>3</span><div><b>Une photo chaque soir</b><p>Vous suivez l'avancement depuis votre téléphone.</p></div></div>
+      <div class="sl"><span>4</span><div><b>Garantie décennale</b><p>Et un chantier rendu propre, évacuation des déchets comprise.</p></div></div>
+    </div>
+  </div>
+  <div class="phone rev"><div class="screen">
+    <div class="top"><small>Votre chantier · Saint-Varent</small><b>Salle de bain complète</b><div class="bar"><i id="pbar"></i></div><small style="display:block;margin-top:8px">Jour 2 sur 6</small></div>
+    <div class="feed" id="feed">
+      <div class="msg"><div class="h"><b>Mathieu · Brunet</b><span>lun. 8:10</span></div><p>Eau coupée, protection des sols posée. On dépose l'ancienne baignoire 🛁</p></div>
+      <div class="msg"><div class="h"><b>Mathieu · Brunet</b><span>lun. 17:45</span></div><p>Nouvelles arrivées et évacuations en place, test d'étanchéité OK ✅</p><img src="https://images.unsplash.com/photo-1768321916212-17ae334a3d63?w=640&q=70&auto=format&fit=crop" alt="Tuyaux de plomberie neufs dans un mur"></div>
+      <div class="msg"><div class="h"><b>Mathieu · Brunet</b><span>mar. 18:02</span></div><p>Receveur de douche posé, faïence demain matin 👌</p></div>
+    </div>
+  </div></div>
+</div></section>
+
+<section id="chantiers" style="padding-top:20px"><div class="wrap">
+  <div class="head rev"><div class="eyebrow">Avant · après</div><h2>Faites glisser le temps.</h2><p>De vraies photos de chantier, du carrelage d'origine à la salle de bain refaite.</p></div>
+  <div class="realnote">ⓘ Photos réelles d'un chantier public, utilisées ici en exemple (crédits sous les photos).</div>
+  <div class="cases" id="cases"></div>
+  <div class="reel">
+    <div class="rev"><div class="stage" id="stage"><span class="badge" id="stBadge"></span><div class="cap" id="stCap"></div></div>
+      <div class="scrub"><input type="range" id="scrub" min="0" max="100" value="0" aria-label="Avancement du chantier"><div class="ticks" id="ticks"></div></div></div>
+    <div class="reel-info rev"><h3 id="cTitle"></h3><p id="cText"></p><div class="facts" id="cFacts"></div><div class="credit" id="cCredit"></div></div>
+  </div>
+</div></section>
+
+<section class="reviews"><div class="wrap">
+  <div class="rv-top rev"><div class="big">4,9</div><div><div class="stars">★★★★★</div><div style="color:var(--muted);font-size:14px">112 avis sur Google</div></div></div>
+  <div class="rv-row">
+    <div class="rv"><div class="stars">★★★★★</div><p>« Fuite sous l'évier un dimanche. Le guide m'a fait couper l'eau en 2 minutes, et je voyais Mathieu arriver sur la carte. Rassurant. »</p><div class="who"><i>CL</i><div>Claire L.<small>Fuite · Thouars</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Salle de bain refaite en 6 jours comme prévu. Les photos du soir, c'est top. »</p><div class="who"><i>FB</i><div>Franck B.<small>Salle de bain · Saint-Varent</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★★</div><p>« Chauffe-eau changé le lendemain. Prix annoncé = prix payé. »</p><div class="who"><i>NM</i><div>Nadia M.<small>Chauffe-eau · Loudun</small></div></div></div>
+    <div class="rv"><div class="stars">★★★★☆</div><p>« Très pro pour notre pompe à chaleur, bonnes explications sur l'entretien. »</p><div class="who"><i>GT</i><div>Gilles T.<small>Pompe à chaleur · Airvault</small></div></div></div>
+  </div>
+</div></section>
+
+<section id="zone"><div class="panel"><div class="wrap split2">
+  <div class="rev">
+    <div class="eyebrow">Zone d'intervention</div>
+    <div class="head" style="margin-bottom:22px"><h2>On vient chez vous&nbsp;?</h2><p>Basés à Thouars, on intervient à 30 km autour. Tapez votre commune : distance, temps de trajet et réponse immédiate.</p></div>
+    <div class="search"><input id="cityIn" placeholder="Votre commune, ex. Bressuire" autocomplete="off" aria-label="Votre commune"><div class="sugg" id="citySugg"></div></div>
+    <button class="geo-btn" id="geoBtn">📍 Utiliser ma position</button>
+  </div>
+  <div class="zone-app rev"><div id="zoneMap" aria-label="Carte de la zone d'intervention"></div><div class="zone-card" id="zoneCard"></div></div>
+</div></div></section>
+
+<section class="faq"><div class="wrap" style="max-width:860px">
+  <div class="head rev"><div class="eyebrow">Questions fréquentes</div><h2>Ce qu'on nous demande souvent.</h2></div>
+  <details><summary>Le guide SOS fuite remplace-t-il un plombier ?</summary><p>Non : il vous aide à limiter les dégâts en attendant l'intervention. Si vous avez le moindre doute avec l'électricité, coupez le disjoncteur général et ne touchez à rien.</p></details>
+  <details><summary>Le suivi en direct, comment ça marche ?</summary><p>Quand Mathieu part chez vous, vous recevez un lien : vous voyez son trajet et son heure d'arrivée, sans installer d'application.</p></details>
+  <details><summary>L'estimation en ligne est-elle fiable ?</summary><p>C'est une fourchette basée sur nos chantiers récents. Le prix définitif est fixé sur le devis et ne bouge plus ensuite.</p></details>
+  <details><summary>Travaillez-vous le week-end ?</summary><p>Pour les fuites, oui, 7 jours sur 7. Les autres travaux se font en semaine.</p></details>
+</div></section>
+
+<section style="padding:0 0 12px"><div class="final"><div class="wrap">
+  <h2>Votre prix en 30 secondes.</h2><p>Sans engagement, et sans laisser votre numéro avant de l'avoir vu.</p>
+  <div class="ctas"><button class="btn btn-dark" data-open>Estimer mes travaux <span class="arr">→</span></button></div>
+</div></div></section>
+
+<footer><div class="wrap"><span>Brunet Plomberie · entreprise fictive · Thouars (79)</span><span>Démo · photos Unsplash & Wikimedia Commons · carte © IGN</span></div></footer>
+<div class="dock" id="dock"><a href="#" class="d-tel" data-tel>📞 Appeler</a><button class="d-main" data-open>Estimer mes travaux</button></div>
+
+<!-- Overlay SOS -->
+<div class="sos" id="sosBox" role="dialog" aria-modal="true" aria-label="Guide SOS fuite">
+  <div class="sos-top"><span style="font-size:22px">💧</span><b id="sosTitle">SOS fuite — guide</b><button id="sosClose" aria-label="Fermer">✕</button></div>
+  <div class="sos-body"><div class="sos-in" id="sosIn"></div></div>
+  <div class="sos-foot" id="sosFoot"></div>
+</div>
+<input type="file" id="sosPhoto" accept="image/*" capture="environment" multiple hidden>
+
+<script>
+const FP=(f,w=1400)=>`https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(f)}?width=${w}`;
+window.SITE={
+  company:'Brunet Plomberie', short:'Brunet', artisan:'Mathieu', refPrefix:'BP',
+  base:{name:'Thouars',lat:46.9766,lon:-0.2153,radiusKm:30},
+  zoneOk:'Devis gratuit, déplacement offert.', urgency:'< 2 h',
+  doneSteps:['Appel de Mathieu pour caler le rendez-vous','Visite gratuite et conseils sur place','Devis détaillé par SMS sous 48 h','Lien de suivi : photo du chantier chaque soir'],
+  needs:[
+    {id:'fuite',e:'💧',t:'Fuite d\'eau',s:'Robinet, tuyau, chasse d\'eau',fixed:[120,450],noUrgentFee:true,photoTitle:'Une photo de la fuite ?',photoLead:'Une photo de la fuite ou de la tache aide Mathieu à venir avec la bonne pièce.',split:[['Recherche de fuite',30],['Pièces',20],['Main-d\'œuvre',40],['Déplacement',10]]},
+    {id:'chauffeeau',e:'🔥',t:'Chauffe-eau',s:'Panne ou remplacement',ask:{title:'Quel chauffe-eau voulez-vous ?',opts:[{id:'elec',e:'⚡',t:'Électrique',s:'Le plus courant'},{id:'thermo',e:'♻️',t:'Thermodynamique',s:'Plus économe à l\'usage'},{id:'gaz',e:'🔵',t:'Gaz',s:'Instantané ou à accumulation'},{id:'nsp',e:'❔',t:'Je ne sais pas',s:'Mathieu vous conseillera'}]},priceAsk:{elec:[900,1700],thermo:[2800,4300],gaz:[1200,2400],nsp:[900,2400]},split:[['Appareil',60],['Main-d\'œuvre',30],['Dépose & recyclage',10]]},
+    {id:'chaudiere',e:'🛠️',t:'Chaudière & chauffage',s:'Panne, entretien, remplacement',ask:{title:'Que se passe-t-il ?',opts:[{id:'panne',e:'🥶',t:'Elle est en panne',s:'Plus de chauffage ou d\'eau chaude'},{id:'entretien',e:'🧰',t:'Entretien annuel',s:'Obligatoire chaque année'},{id:'remplacement',e:'🔄',t:'La remplacer',s:'Trop vieille, trop gourmande'}]},priceAsk:{panne:[150,600],entretien:[100,180],remplacement:[3500,7500]},split:[['Diagnostic',20],['Pièces / appareil',45],['Main-d\'œuvre',35]]},
+    {id:'pac',e:'🌡️',t:'Pompe à chaleur',s:'Installation air/eau',fixed:[10000,16000],split:[['Pompe à chaleur',60],['Raccordements',15],['Main-d\'œuvre',20],['Mise en service',5]]},
+    {id:'sdb',e:'🛁',t:'Salle de bain',s:'Rénovation complète',unit:'m²',qtyTitle:'Surface de la salle de bain',min:3,max:15,def:6,hint:'Repère : une petite salle de bain fait 4 à 6 m².',price:{all:[1300,2500]},photoTitle:'Une photo de la pièce ?',split:[['Dépose',10],['Plomberie',25],['Carrelage & faïence',30],['Sanitaires & meubles',35]]},
+    {id:'debouchage',e:'🚽',t:'Débouchage & WC',s:'Évier, WC, canalisation',fixed:[90,350],split:[['Intervention',60],['Matériel',25],['Déplacement',15]]},
+  ],
+  cases:[{tab:'Salle de bain',title:'Salle de bain des années 70, entièrement refaite',
+    text:'Faïence verte d\'origine, lavabo et sol usés : tout a été déposé. Nouvelle douche, meuble vasque et sols, avec des arrivées d\'eau refaites à neuf.',
+    facts:[['Avant','faïence d\'origine'],['Après','douche + meuble neuf'],['2020','logement de saisonniers']],
+    stages:[{d:'Avant',l:'Avant travaux',c:'Faïence d\'origine, sanitaires vieillissants.',img:FP('Seasonal employee housing bathroom before renovation (50014558717).jpg')},
+            {d:'Après',l:'Après rénovation',c:'Douche, meuble vasque et sols neufs.',img:FP('Seasonal employee housing bathroom after renovation (50014557962).jpg')}],
+    credit:'Logement du parc national de Yellowstone (États-Unis) — photos NPS / Jacob W. Frank, <a href="https://commons.wikimedia.org/wiki/File:Seasonal_employee_housing_bathroom_after_renovation_(50014557962).jpg" target="_blank" rel="noopener">domaine public</a>.'}],
+};
+</script>
+<script src="../_engine/engine.js"></script>
+<script>
+/* =================== SOS FUITE =================== */
+(function(){
+const E=Engine, $=s=>document.querySelector(s), box=$('#sosBox'), sIn=$('#sosIn'), foot=$('#sosFoot');
+const STEPS=[
+  {ill:'🚰',t:'Coupez l\'arrivée d\'eau',p:'Cherchez le robinet d\'arrêt général et tournez-le dans le sens des aiguilles d\'une montre jusqu\'au bout.',where:['Près du compteur d\'eau','Sous l\'évier','Cave ou garage','Regard dans le jardin'],warn:null},
+  {ill:'⚡',t:'Éloignez l\'eau de l\'électricité',p:'Si l\'eau approche d\'une prise, d\'un appareil ou du tableau électrique, coupez le disjoncteur général.',warn:'Ne touchez jamais un appareil électrique les pieds dans l\'eau.'},
+  {ill:'🪣',t:'Limitez les dégâts',p:'Seaux et serpillières sous la fuite, meubles et tapis surélevés, objets de valeur à l\'abri. Ouvrez les fenêtres pour aérer.'},
+  {ill:'📷',t:'Prenez 2 ou 3 photos',p:'La fuite, la tache, les objets abîmés. Votre assurance vous les demandera.',photo:true},
+  {ill:'📣',t:'Prévenez les bonnes personnes',p:'En appartement, prévenez le voisin du dessous et le syndic. Déclarez ensuite le dégât des eaux à votre assureur : vous avez au moins 5 jours ouvrés, vérifiez votre contrat.'},
+];
+let i=0, photos=0, map, timer;
+const open=()=>{i=0;photos=0;box.classList.add('open');document.body.style.overflow='hidden';$('#sosTitle').textContent='SOS fuite — guide';render()};
+const close=()=>{box.classList.remove('open');document.body.style.overflow='';clearInterval(timer)};
+$('#sosOpen').onclick=open; $('#sosClose').onclick=close;
+document.querySelectorAll('a[href="#sos"].btn').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();open()}));
+$('#sosPhoto').onchange=e=>{photos+=e.target.files.length;e.target.value='';render()};
+function prog(){return `<div class="sos-prog">${STEPS.map((_,j)=>`<i class="${j<i?'done':j===i?'on':''}"></i>`).join('')}<i class="${i>=STEPS.length?'on':''}"></i></div>`}
+function render(){
+  if(i<STEPS.length){
+    const s=STEPS[i];
+    sIn.innerHTML=prog()+`<div class="card"><div class="ill">${s.ill}</div><div class="eyebrow" style="margin-top:12px">Étape ${i+1} sur ${STEPS.length}</div><h3>${s.t}</h3><p>${s.p}</p>
+      ${s.where?`<div class="where">${s.where.map(w=>`<span>📍 ${w}</span>`).join('')}</div>`:''}
+      ${s.warn?`<div class="warn">⚠️ ${s.warn}</div>`:''}
+      ${s.photo?`<button class="drop" id="snap" style="margin-top:16px"><span style="font-size:30px">📸</span><b>${photos?photos+' photo'+(photos>1?'s':'')+' prise'+(photos>1?'s':'')+' ✓':'Prendre une photo'}</b><small>Elles restent sur votre téléphone</small></button>`:''}
+      </div><button class="sos-skip" id="skip">Passer le guide et alerter Mathieu tout de suite</button>`;
+    foot.innerHTML=`${i>0?'<button class="btn" id="prev" style="background:rgba(255,255,255,.08);color:#fff;flex:0 0 auto">←</button>':''}<button class="btn btn-main" id="ok">C'est fait ✓</button>`;
+    $('#ok').onclick=()=>{i++;render()}; $('#prev')&&($('#prev').onclick=()=>{i--;render()});
+    $('#skip').onclick=()=>{i=STEPS.length;render()}; $('#snap')&&($('#snap').onclick=()=>$('#sosPhoto').click());
+  } else if(i===STEPS.length){
+    sIn.innerHTML=prog()+`<div class="card"><div class="ill">🚐</div><h3>On envoie Mathieu.</h3><p>Indiquez votre commune : l'alerte part directement sur son téléphone${photos?', avec vos '+photos+' photo'+(photos>1?'s':''):''}.</p>
+      <div class="search" style="margin-top:16px"><input id="sosCity" placeholder="Votre commune" autocomplete="off" aria-label="Votre commune"><div class="sugg" id="sosSugg"></div></div></div>`;
+    foot.innerHTML=`<button class="btn btn-alert" id="send" disabled>Envoyer l'alerte</button>`;
+    let place=null;
+    E.autocomplete($('#sosCity'),$('#sosSugg'),E.geoCommune,it=>{place=it;$('#send').disabled=false});
+    $('#send').onclick=()=>{i++;track(place)};
+    setTimeout(()=>$('#sosCity').focus(),300);
+  }
+}
+function track(place){
+  $('#sosTitle').textContent='Mathieu arrive';
+  const d=E.km(SITE.base,place), total=Math.max(8,Math.round(d*1.3/60*60+6));
+  sIn.innerHTML=`<div class="card"><div class="eyebrow">Alerte reçue · ${E.esc(place.label)}</div>
+    <div class="eta" style="margin-top:12px"><b id="eta">${total}</b><span>min avant l'arrivée de Mathieu</span></div>
+    <div id="trackMap"></div>
+    <div class="timeline" id="tl"><div class="on"><i></i>Alerte reçue par Mathieu</div><div><i></i>Mathieu a accepté l'intervention</div><div><i></i>En route avec le camion atelier</div><div><i></i>Arrivé chez vous</div></div>
+    <p style="font-size:12.5px;color:var(--muted-d);margin-top:10px">Démo : trajet simulé et accéléré (1 seconde = 1 minute). Aucune alerte n'a été envoyée.</p></div>`;
+  foot.innerHTML=`<a class="btn btn-main" href="#" id="callM">📞 Appeler Mathieu</a>`;
+  $('#callM').onclick=e=>{e.preventDefault();E.telMsg()};
+  E.whenLeaflet(()=>{
+    if(map) map.remove();
+    map=L.map('trackMap',{zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false});
+    L.tileLayer(E.IGN_PLAN,{maxZoom:18,className:'night'}).addTo(map);
+    const A=[SITE.base.lat,SITE.base.lon], B=[place.lat,place.lon];
+    L.polyline([A,B],{color:'#39a9ff',weight:4,dashArray:'2 9',lineCap:'round'}).addTo(map);
+    L.marker(B,{icon:L.divIcon({className:'dest'})}).addTo(map).bindTooltip('Chez vous',{permanent:true,direction:'right',offset:[12,0],className:'lbl'});
+    const van=L.marker(A,{icon:L.divIcon({className:'van',html:'🚐'})}).addTo(map);
+    map.fitBounds(L.latLngBounds([A,B]).pad(.35),{maxZoom:13});
+    let left=total; const tl=[...document.querySelectorAll('#tl div')];
+    setTimeout(()=>tl[1].classList.add('on'),1200);
+    setTimeout(()=>tl[2].classList.add('on'),2400);
+    clearInterval(timer);
+    timer=setInterval(()=>{
+      left--; const k=1-left/total;
+      if(k>0.08) van.setLatLng([A[0]+(B[0]-A[0])*k,A[1]+(B[1]-A[1])*k]);
+      $('#eta').textContent=Math.max(0,left);
+      if(left<=0){clearInterval(timer);tl[3].classList.add('on');$('.eta span').textContent='Mathieu est arrivé 👋';E.toast('Mathieu est devant chez vous')}
+    },1000);
+  });
+}
+})();
+</script>
+</body>
+</html>
